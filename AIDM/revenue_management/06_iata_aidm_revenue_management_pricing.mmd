@@ -1,0 +1,293 @@
+---
+title: IATA AIDM 25.1 — Revenue Management & Pricing
+---
+erDiagram
+
+    %% ══════════════════════════════════════════
+    %% UPSTREAM DOMAIN ENTITIES (FK references)
+    %% ══════════════════════════════════════════
+
+    AIRLINE {
+        VARCHAR3   airlineCode         PK
+        VARCHAR100 airlineName
+    }
+
+    ROUTE {
+        VARCHAR30  routeID                PK
+        VARCHAR30  routeNetworkID         FK
+        VARCHAR3   originAirportCode      FK
+        VARCHAR3   destinationAirportCode FK
+        VARCHAR20  routeStatus
+    }
+
+    ROUTE_NETWORK {
+        VARCHAR30  routeNetworkID      PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR5   seasonCode
+    }
+
+    FARE_FAMILY {
+        VARCHAR30  fareFamilyID        PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR10  fareFamilyCode
+        VARCHAR10  cabinClass
+    }
+
+    CABIN_CLASS {
+        VARCHAR30  cabinClassID        PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR5   cabinCode
+        VARCHAR50  cabinName
+    }
+
+    SEAT_MAP {
+        VARCHAR30  seatMapID           PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR10  aircraftTypeCode
+        INTEGER    totalSeats
+    }
+
+    BOOKING_SEGMENT {
+        VARCHAR30   bookingSegmentID   PK
+        VARCHAR30   bookingID          FK
+        VARCHAR2    bookingClass
+        VARCHAR1    cabinCode
+        VARCHAR10   segmentStatus
+    }
+
+    BOOKING {
+        VARCHAR30   bookingID          PK
+        VARCHAR3    airlineCode        FK
+        VARCHAR20   bookingStatus
+        DECIMAL12_2 totalAmount
+    }
+
+    TICKET {
+        VARCHAR30   ticketID           PK
+        VARCHAR30   bookingID          FK
+        VARCHAR14   ticketNumber
+        VARCHAR20   ticketStatus
+    }
+
+    CUSTOMER_PROFILE {
+        VARCHAR30  customerID          PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR50  firstName
+        VARCHAR50  lastName
+        VARCHAR30  customerSegment
+    }
+
+    LOYALTY_ACCOUNT {
+        VARCHAR30  loyaltyAccountID    PK
+        VARCHAR30  customerID          FK
+        INTEGER    currentMilesBalance
+        VARCHAR20  accountStatus
+    }
+
+    %% ══════════════════════════════════════════
+    %% DOMAIN 06 — REVENUE MANAGEMENT & PRICING
+    %% ══════════════════════════════════════════
+
+    FARE {
+        VARCHAR30   fareID              PK
+        VARCHAR3    airlineCode         FK
+        VARCHAR30   routeID             FK
+        VARCHAR30   fareFamilyID        FK
+        VARCHAR20   fareBasisCode
+        VARCHAR2    bookingClass
+        VARCHAR1    cabinCode
+        DECIMAL12_2 fareAmount
+        CHAR3       currency
+        VARCHAR20   fareType
+        CHAR1       owrt
+        VARCHAR2    globalIndicator
+        VARCHAR10   routingNumber
+        CHAR1       mileageIndicator
+        DATE        effectiveDate
+        DATE        discontinuationDate
+        VARCHAR10   tariffNumber
+        VARCHAR10   ruleNumber
+        VARCHAR20   status
+    }
+
+    FARE_RULE_SET {
+        VARCHAR30  fareRuleSetID        PK
+        VARCHAR30  fareID               FK
+        VARCHAR3   airlineCode          FK
+        INTEGER    atpcoCategory
+        VARCHAR50  categoryName
+        TEXT       ruleText
+        VARCHAR20  minStay
+        VARCHAR20  maxStay
+        INTEGER    advancePurchaseDays
+        TEXT       blackoutDates
+        VARCHAR7   permittedDaysOfWeek
+        DATE       effectiveDate
+        DATE       discontinuationDate
+    }
+
+    TAX_FEE_CHARGE {
+        VARCHAR30   taxFeeChargeID      PK
+        VARCHAR30   fareID              FK
+        VARCHAR10   taxCode
+        VARCHAR20   taxType
+        VARCHAR100  taxName
+        VARCHAR20   calculationMethod
+        DECIMAL10_2 taxAmount
+        DECIMAL5_2  taxPercentage
+        CHAR3       currency
+        VARCHAR3    applicableCountry
+        DATE        effectiveDate
+        DATE        discontinuationDate
+    }
+
+    INVENTORY_CLASS {
+        VARCHAR30  inventoryClassID     PK
+        VARCHAR3   airlineCode          FK
+        VARCHAR30  routeID              FK
+        VARCHAR30  cabinClassID         FK
+        VARCHAR30  seatMapID            FK
+        VARCHAR2   bookingClass
+        VARCHAR1   cabinCode
+        INTEGER    totalCapacity
+        INTEGER    authorisedCapacity
+        INTEGER    bookedCount
+        INTEGER    waitlistCount
+        INTEGER    availableCount
+        DECIMAL5_3 overbookingFactor
+        INTEGER    closeOutLevel
+        VARCHAR10  classStatus
+        INTEGER    protectedCapacity
+        TIMESTAMP  lastUpdatedDateTime
+    }
+
+    INVENTORY_BOOKING_ACTIVITY {
+        VARCHAR30  inventoryActivityID  PK
+        VARCHAR30  inventoryClassID     FK
+        VARCHAR30  bookingSegmentID     FK
+        VARCHAR20  activityType
+        INTEGER    seatsAffected
+        TIMESTAMP  activityDateTime
+        VARCHAR30  sourceSystem
+    }
+
+    DEMAND_FORECAST {
+        VARCHAR30   demandForecastID    PK
+        VARCHAR3    airlineCode         FK
+        VARCHAR30   routeID             FK
+        DATE        forecastDate
+        TIMESTAMP   forecastRunDateTime
+        VARCHAR50   forecastModel
+        VARCHAR2    bookingClass
+        DECIMAL8_2  forecastDemand
+        DECIMAL12_2 forecastRevenue
+        CHAR3       currency
+        DECIMAL5_4  loadFactorForecast
+        DECIMAL5_4  confidenceInterval
+        INTEGER     forecastHorizonDays
+    }
+
+    PRICING_ACTION {
+        VARCHAR30  pricingActionID      PK
+        VARCHAR30  inventoryClassID     FK
+        VARCHAR30  fareID               FK
+        VARCHAR20  actionType
+        VARCHAR20  triggeredBy
+        VARCHAR10  previousStatus
+        VARCHAR10  newStatus
+        INTEGER    previousCapacity
+        INTEGER    newCapacity
+        TIMESTAMP  actionDateTime
+        VARCHAR30  analystID
+        VARCHAR255 notes
+    }
+
+    DYNAMIC_PRICE_OFFER {
+        VARCHAR30   dynamicPriceOfferID PK
+        VARCHAR30   fareID              FK
+        VARCHAR30   customerID          FK
+        VARCHAR30   loyaltyAccountID    FK
+        VARCHAR50   sessionID
+        VARCHAR30   offerChannel
+        DECIMAL12_2 basePrice
+        DECIMAL10_2 dynamicAdjustment
+        DECIMAL12_2 finalPrice
+        CHAR3       currency
+        VARCHAR50   pricingModel
+        DECIMAL12_2 willingnessToPay
+        TIMESTAMP   offerValidUntil
+        VARCHAR20   conversionStatus
+        TIMESTAMP   offerGeneratedDateTime
+    }
+
+    OVERBOOKING_POLICY {
+        VARCHAR30  overbookingPolicyID  PK
+        VARCHAR3   airlineCode          FK
+        VARCHAR30  routeID              FK
+        VARCHAR1   cabinCode
+        VARCHAR5   seasonCode
+        DECIMAL5_3 maxOverbookingFactor
+        DECIMAL5_3 targetOverbookingFactor
+        DECIMAL5_4 noShowRate
+        DECIMAL5_4 cancellationRate
+        INTEGER    voluntaryDenialBudget
+        INTEGER    involuntaryDenialThreshold
+        DATE       effectiveDate
+        DATE       expiryDate
+    }
+
+    REVENUE_RECORD {
+        VARCHAR30   revenueRecordID     PK
+        VARCHAR3    airlineCode         FK
+        VARCHAR30   bookingID           FK
+        VARCHAR30   ticketID            FK
+        VARCHAR30   routeNetworkID      FK
+        VARCHAR30   fareID              FK
+        VARCHAR20   revenueType
+        DECIMAL12_2 grossRevenue
+        DECIMAL10_2 commissionPaid
+        DECIMAL10_2 taxesCollected
+        DECIMAL12_2 netRevenue
+        CHAR3       currency
+        DATE        revenueDate
+        DECIMAL10_6 raskContribution
+        DECIMAL10_6 yieldPerMile
+        VARCHAR7    accountingPeriod
+        TIMESTAMP   postedDateTime
+    }
+
+    %% ══════════════════════════════════════════
+    %% RELATIONSHIPS — Internal RM & Pricing
+    %% ══════════════════════════════════════════
+
+    FARE                  ||--|{ FARE_RULE_SET               : "governed by"
+    FARE                  ||--o{ TAX_FEE_CHARGE              : "subject to"
+    FARE                  ||--o{ DYNAMIC_PRICE_OFFER         : "generates"
+    FARE                  ||--o{ PRICING_ACTION              : "actioned by"
+    FARE                  ||--o{ REVENUE_RECORD              : "realises"
+    INVENTORY_CLASS       ||--o{ INVENTORY_BOOKING_ACTIVITY  : "records"
+    INVENTORY_CLASS       ||--o{ PRICING_ACTION              : "controlled by"
+    INVENTORY_CLASS       ||--o{ DEMAND_FORECAST             : "forecast by"
+
+    %% ══════════════════════════════════════════
+    %% RELATIONSHIPS — Cross-Domain
+    %% ══════════════════════════════════════════
+
+    AIRLINE               ||--o{ FARE                        : "files"
+    AIRLINE               ||--o{ INVENTORY_CLASS             : "manages"
+    AIRLINE               ||--o{ DEMAND_FORECAST             : "forecasts"
+    AIRLINE               ||--o{ OVERBOOKING_POLICY          : "sets"
+    AIRLINE               ||--o{ REVENUE_RECORD              : "recognises"
+    ROUTE                 ||--o{ FARE                        : "priced by"
+    ROUTE                 ||--o{ INVENTORY_CLASS             : "inventoried by"
+    ROUTE                 ||--o{ DEMAND_FORECAST             : "forecasted for"
+    ROUTE                 ||--o{ OVERBOOKING_POLICY          : "governed by"
+    ROUTE_NETWORK         ||--o{ REVENUE_RECORD              : "attributed to"
+    FARE_FAMILY           ||--o{ FARE                        : "categorised as"
+    CABIN_CLASS           ||--o{ INVENTORY_CLASS             : "segments"
+    SEAT_MAP              ||--o{ INVENTORY_CLASS             : "configures"
+    BOOKING_SEGMENT       ||--o{ INVENTORY_BOOKING_ACTIVITY  : "drives"
+    BOOKING               ||--o{ REVENUE_RECORD              : "generates"
+    TICKET                ||--o{ REVENUE_RECORD              : "evidences"
+    CUSTOMER_PROFILE      ||--o{ DYNAMIC_PRICE_OFFER         : "receives"
+    LOYALTY_ACCOUNT       ||--o{ DYNAMIC_PRICE_OFFER         : "influences"

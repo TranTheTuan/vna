@@ -1,0 +1,259 @@
+---
+title: IATA AIDM 25.1 — Cargo
+---
+erDiagram
+
+    %% ══════════════════════════════════════════
+    %% UPSTREAM DOMAIN ENTITIES (FK references)
+    %% ══════════════════════════════════════════
+
+    AIRLINE {
+        VARCHAR3   airlineCode         PK
+        VARCHAR100 airlineName
+    }
+
+    ROUTE {
+        VARCHAR30  routeID             PK
+        VARCHAR3   originAirportCode   FK
+        VARCHAR3   destinationAirportCode FK
+        VARCHAR20  routeStatus
+    }
+
+    ROUTE_NETWORK {
+        VARCHAR30  routeNetworkID      PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR5   seasonCode
+    }
+
+    FLIGHT {
+        VARCHAR30  flightID            PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR30  routeID             FK
+        VARCHAR10  flightNumber
+        TIMESTAMP  scheduledDepartureDateTime
+        VARCHAR20  flightStatus
+    }
+
+    GROUND_HANDLER {
+        VARCHAR30  groundHandlerID     PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR100 handlerName
+        VARCHAR3   airportCode
+        VARCHAR20  status
+    }
+
+    %% ══════════════════════════════════════════
+    %% DOMAIN 09 — CARGO ENTITIES
+    %% ══════════════════════════════════════════
+
+    CARGO_PRODUCT {
+        VARCHAR30  cargoProductID      PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR10  productCode
+        VARCHAR100 productName
+        VARCHAR30  productCategory
+        VARCHAR5   handlingCode
+        CHAR1      temperatureControlled
+        DECIMAL5_2 minTempCelsius
+        DECIMAL5_2 maxTempCelsius
+        CHAR1      dgr
+        INTEGER    transitTimeHours
+        VARCHAR20  status
+        DATE       effectiveDate
+        DATE       expiryDate
+    }
+
+    CARGO_RATE {
+        VARCHAR30   cargoRateID        PK
+        VARCHAR3    airlineCode        FK
+        VARCHAR30   cargoProductID     FK
+        VARCHAR30   routeID            FK
+        VARCHAR30   routeNetworkID     FK
+        VARCHAR20   rateType
+        DECIMAL8_2  weightBreakpoint
+        DECIMAL10_4 ratePerKg
+        DECIMAL10_2 minimumCharge
+        CHAR3       currency
+        VARCHAR5    iataRateClass
+        DATE        effectiveDate
+        DATE        expiryDate
+        VARCHAR20   status
+    }
+
+    CARGO_SHIPPER {
+        VARCHAR30  shipperID           PK
+        VARCHAR100 shipperName
+        VARCHAR20  shipperType
+        VARCHAR7   iataAgentCode
+        VARCHAR100 addressLine1
+        VARCHAR50  city
+        VARCHAR3   country
+        VARCHAR255 contactEmail
+        VARCHAR20  contactPhone
+        VARCHAR20  accountStatus
+        CHAR1      knownShipperStatus
+        DATE       knownShipperVerifiedDate
+    }
+
+    CARGO_SHIPMENT {
+        VARCHAR30   shipmentID         PK
+        VARCHAR3    airlineCode        FK
+        VARCHAR30   shipperID          FK
+        VARCHAR30   cargoProductID     FK
+        VARCHAR3    originAirportCode
+        VARCHAR3    destinationAirportCode
+        VARCHAR20   shipmentStatus
+        VARCHAR10   commodityCode
+        VARCHAR255  commodityDescription
+        INTEGER     totalPieces
+        DECIMAL10_3 totalWeightKg
+        DECIMAL10_3 chargeableWeightKg
+        DECIMAL8_4  volumeCbm
+        DECIMAL14_2 shipmentValue
+        CHAR3       shipmentCurrency
+        VARCHAR50   specialHandlingCodes
+        TIMESTAMP   bookingDateTime
+        DATE        requiredDeliveryDate
+    }
+
+    AIRWAYBILL {
+        VARCHAR30   airwaybillID       PK
+        VARCHAR30   shipmentID         FK
+        VARCHAR3    airlineCode        FK
+        VARCHAR30   parentAWBID        FK
+        VARCHAR12   awbNumber
+        VARCHAR5    awbType
+        VARCHAR100  shipperName
+        VARCHAR100  consigneeName
+        VARCHAR3    originAirportCode
+        VARCHAR3    destinationAirportCode
+        INTEGER     pieces
+        DECIMAL10_3 grossWeightKg
+        DECIMAL10_3 chargeableWeightKg
+        DECIMAL10_4 ratePerKg
+        DECIMAL12_2 totalCharges
+        CHAR3       currency
+        CHAR1       chargesPrepaid
+        TIMESTAMP   issuanceDateTime
+        VARCHAR20   awbStatus
+    }
+
+    CARGO_FLIGHT_BOOKING {
+        VARCHAR30   cargoFlightBookingID PK
+        VARCHAR30   shipmentID           FK
+        VARCHAR3    airlineCode          FK
+        VARCHAR30   flightID             FK
+        VARCHAR30   routeID              FK
+        DECIMAL10_3 bookedWeightKg
+        DECIMAL8_4  bookedVolumeCbm
+        INTEGER     bookedPieces
+        VARCHAR20   bookingStatus
+        VARCHAR5    bookingClass
+        INTEGER     sequenceNumber
+    }
+
+    ULD {
+        VARCHAR30  uldID               PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR10  uldSerialNumber
+        VARCHAR5   uldType
+        VARCHAR10  uldCategory
+        DECIMAL8_2 maxGrossWeightKg
+        DECIMAL6_2 tarWeightKg
+        DECIMAL6_3 volumeCbm
+        VARCHAR3   ownerCode
+        VARCHAR20  uldStatus
+        VARCHAR3   currentLocationCode
+        DATE       lastInspectionDate
+    }
+
+    ULD_FLIGHT_ASSIGNMENT {
+        VARCHAR30   uldFlightAssignmentID PK
+        VARCHAR30   uldID                 FK
+        VARCHAR30   flightID              FK
+        VARCHAR10   loadPosition
+        DECIMAL10_2 loadedWeightKg
+        TIMESTAMP   loadedDateTime
+        TIMESTAMP   offloadedDateTime
+        VARCHAR20   assignmentStatus
+    }
+
+    CARGO_ACCEPTANCE {
+        VARCHAR30   acceptanceID        PK
+        VARCHAR30   shipmentID          FK
+        VARCHAR30   groundHandlerID     FK
+        TIMESTAMP   acceptanceDateTime
+        VARCHAR50   acceptanceLocation
+        INTEGER     actualPiecesReceived
+        DECIMAL10_3 actualWeightKg
+        CHAR1       dimensionsVerified
+        VARCHAR30   screeningMethod
+        VARCHAR20   screeningStatus
+        TIMESTAMP   screeningDateTime
+        VARCHAR20   acceptanceStatus
+        VARCHAR100  refusalReason
+    }
+
+    DGR_DECLARATION {
+        VARCHAR30  dgrDeclarationID    PK
+        VARCHAR30  shipmentID          FK
+        VARCHAR6   unNumber
+        VARCHAR255 properShippingName
+        VARCHAR5   hazardClass
+        VARCHAR5   packingGroup
+        DECIMAL8_3 netQuantityKg
+        VARCHAR50  packagingType
+        VARCHAR20  emergencyContact
+        VARCHAR50  shipperDeclarationRef
+        VARCHAR10  regulatoryAuthority
+        VARCHAR20  complianceStatus
+        TIMESTAMP  declarationDateTime
+    }
+
+    CARGO_REVENUE_RECORD {
+        VARCHAR30   cargoRevenueID     PK
+        VARCHAR30   airwaybillID       FK
+        VARCHAR3    airlineCode        FK
+        DECIMAL12_2 freightCharges
+        DECIMAL10_2 fuelSurcharge
+        DECIMAL10_2 securitySurcharge
+        DECIMAL10_2 otherCharges
+        DECIMAL12_2 totalRevenue
+        CHAR3       currency
+        DATE        revenueDate
+        VARCHAR7    accountingPeriod
+        DECIMAL10_4 revenuePerKg
+        TIMESTAMP   postedDateTime
+    }
+
+    %% ══════════════════════════════════════════
+    %% RELATIONSHIPS — Internal Cargo Domain
+    %% ══════════════════════════════════════════
+
+    CARGO_PRODUCT        ||--o{ CARGO_RATE               : "rated by"
+    CARGO_PRODUCT        ||--o{ CARGO_SHIPMENT           : "governs"
+    CARGO_SHIPPER        ||--o{ CARGO_SHIPMENT           : "ships"
+    CARGO_SHIPMENT       ||--|{ AIRWAYBILL               : "documented by"
+    CARGO_SHIPMENT       ||--|{ CARGO_FLIGHT_BOOKING     : "booked on"
+    CARGO_SHIPMENT       ||--o| CARGO_ACCEPTANCE         : "accepted via"
+    CARGO_SHIPMENT       ||--o{ DGR_DECLARATION          : "declared as"
+    AIRWAYBILL           ||--o{ AIRWAYBILL               : "houses"
+    AIRWAYBILL           ||--o| CARGO_REVENUE_RECORD     : "generates"
+    ULD                  ||--o{ ULD_FLIGHT_ASSIGNMENT    : "assigned to"
+
+    %% ══════════════════════════════════════════
+    %% RELATIONSHIPS — Cross-Domain
+    %% ══════════════════════════════════════════
+
+    AIRLINE              ||--o{ CARGO_PRODUCT            : "offers"
+    AIRLINE              ||--o{ CARGO_RATE               : "files"
+    AIRLINE              ||--o{ CARGO_SHIPMENT           : "carries"
+    AIRLINE              ||--o{ AIRWAYBILL               : "issues"
+    AIRLINE              ||--o{ ULD                      : "owns"
+    AIRLINE              ||--o{ CARGO_REVENUE_RECORD     : "recognises"
+    ROUTE                ||--o{ CARGO_RATE               : "rated on"
+    ROUTE                ||--o{ CARGO_FLIGHT_BOOKING     : "routed via"
+    ROUTE_NETWORK        ||--o{ CARGO_RATE               : "scoped to"
+    FLIGHT               ||--o{ CARGO_FLIGHT_BOOKING     : "carries"
+    FLIGHT               ||--o{ ULD_FLIGHT_ASSIGNMENT    : "loaded with"
+    GROUND_HANDLER       ||--o{ CARGO_ACCEPTANCE         : "accepts"

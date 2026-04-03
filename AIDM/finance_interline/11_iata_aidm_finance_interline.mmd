@@ -1,0 +1,301 @@
+---
+title: IATA AIDM 25.1 — Finance & Interline
+---
+erDiagram
+
+    %% ══════════════════════════════════════════
+    %% UPSTREAM DOMAIN ENTITIES (FK references)
+    %% ══════════════════════════════════════════
+
+    AIRLINE {
+        VARCHAR3   airlineCode         PK
+        VARCHAR100 airlineName
+    }
+
+    ROUTE {
+        VARCHAR30  routeID             PK
+        VARCHAR3   originAirportCode   FK
+        VARCHAR3   destinationAirportCode FK
+        VARCHAR20  routeStatus
+    }
+
+    BOOKING {
+        VARCHAR30   bookingID          PK
+        VARCHAR3    airlineCode        FK
+        VARCHAR20   bookingStatus
+        DECIMAL12_2 totalAmount
+    }
+
+    TICKET {
+        VARCHAR30   ticketID           PK
+        VARCHAR30   bookingID          FK
+        VARCHAR14   ticketNumber
+        VARCHAR20   ticketStatus
+    }
+
+    TICKET_COUPON {
+        VARCHAR30  ticketCouponID      PK
+        VARCHAR30  ticketID            FK
+        INTEGER    couponSequence
+        VARCHAR3   operatingCarrierCode
+        VARCHAR20  couponStatus
+    }
+
+    REVENUE_RECORD {
+        VARCHAR30   revenueRecordID    PK
+        VARCHAR3    airlineCode        FK
+        DECIMAL12_2 netRevenue
+        VARCHAR7    accountingPeriod
+    }
+
+    CARGO_REVENUE_RECORD {
+        VARCHAR30   cargoRevenueID     PK
+        VARCHAR3    airlineCode        FK
+        DECIMAL12_2 totalRevenue
+        VARCHAR7    accountingPeriod
+    }
+
+    WORK_ORDER {
+        VARCHAR30  workOrderID         PK
+        VARCHAR30  aircraftID          FK
+        VARCHAR20  workOrderType
+        VARCHAR20  workOrderStatus
+        DECIMAL8_2 totalManHoursActual
+    }
+
+    GROUND_HANDLER {
+        VARCHAR30  groundHandlerID     PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR100 handlerName
+        VARCHAR3   airportCode
+        VARCHAR20  status
+    }
+
+    %% ══════════════════════════════════════════
+    %% DOMAIN 11 — FINANCE & INTERLINE ENTITIES
+    %% ══════════════════════════════════════════
+
+    COST_CENTRE {
+        VARCHAR30  costCentreID        PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR30  parentCostCentreID  FK
+        VARCHAR20  costCentreCode
+        VARCHAR100 costCentreName
+        VARCHAR30  costCentreType
+        VARCHAR30  managerEmployeeID
+        VARCHAR3   airportCode
+        VARCHAR20  status
+    }
+
+    GL_ACCOUNT {
+        VARCHAR30  glAccountID         PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR30  costCentreID        FK
+        VARCHAR20  accountCode
+        VARCHAR100 accountName
+        VARCHAR20  accountType
+        VARCHAR30  accountSubType
+        VARCHAR6   normalBalance
+        VARCHAR20  parentAccountCode
+        CHAR3      currency
+        VARCHAR10  iataAccountCode
+        VARCHAR20  status
+        DATE       effectiveDate
+    }
+
+    GL_POSTING {
+        VARCHAR30   glPostingID        PK
+        VARCHAR30   glAccountID        FK
+        VARCHAR30   costCentreID       FK
+        VARCHAR30   revenueRecordID    FK
+        VARCHAR30   cargoRevenueID     FK
+        VARCHAR20   postingType
+        DECIMAL14_2 postingAmount
+        CHAR3       currency
+        DECIMAL14_2 functionalAmount
+        CHAR3       functionalCurrency
+        DECIMAL12_6 exchangeRate
+        DATE        postingDate
+        VARCHAR7    accountingPeriod
+        VARCHAR50   journalReference
+        VARCHAR255  postingDescription
+        VARCHAR30   sourceSystem
+        TIMESTAMP   postedDateTime
+    }
+
+    EXCHANGE_RATE {
+        VARCHAR30   exchangeRateID     PK
+        CHAR3       fromCurrency
+        CHAR3       toCurrency
+        VARCHAR20   rateType
+        DECIMAL14_6 exchangeRate
+        DATE        effectiveDate
+        DATE        expiryDate
+        VARCHAR50   rateSource
+    }
+
+    INTERLINE_AGREEMENT {
+        VARCHAR30  interlineAgreementID PK
+        VARCHAR3   airlineCode          FK
+        VARCHAR3   partnerAirlineCode
+        VARCHAR20  agreementType
+        VARCHAR10  settlementMethod
+        VARCHAR20  defaultProrateMethod
+        CHAR3      billingCurrency
+        DATE       effectiveDate
+        DATE       expiryDate
+        VARCHAR20  status
+        VARCHAR30  iataAgreementRef
+    }
+
+    PRORATION_RULE {
+        VARCHAR30   prorationRuleID     PK
+        VARCHAR30   interlineAgreementID FK
+        VARCHAR30   routeID              FK
+        VARCHAR20   prorationMethod
+        DECIMAL6_4  proratePercentage
+        DECIMAL10_2 minimumProrate
+        CHAR3       currency
+        DATE        effectiveDate
+        DATE        expiryDate
+    }
+
+    INTERLINE_BILLING_COUPON {
+        VARCHAR30   billingCouponID     PK
+        VARCHAR30   ticketID            FK
+        VARCHAR30   ticketCouponID      FK
+        VARCHAR30   interlineAgreementID FK
+        VARCHAR3    issuingCarrierCode
+        VARCHAR3    operatingCarrierCode
+        VARCHAR3    originAirportCode
+        VARCHAR3    destinationAirportCode
+        DECIMAL12_2 couponFaceValue
+        DECIMAL12_2 proratedAmount
+        CHAR3       billingCurrency
+        VARCHAR20   billingStatus
+        DATE        flightDate
+        VARCHAR7    billingPeriod
+    }
+
+    INTERLINE_REVENUE_PRORATION {
+        VARCHAR30   prorationID         PK
+        VARCHAR30   bookingID           FK
+        VARCHAR30   ticketID            FK
+        VARCHAR30   prorationRuleID     FK
+        VARCHAR30   routeID             FK
+        DECIMAL12_2 totalFareAmount
+        DECIMAL12_2 homeCarrierProrate
+        DECIMAL12_2 partnerCarrierProrate
+        VARCHAR20   prorateMethod
+        INTEGER     homeCarrierMileage
+        INTEGER     partnerCarrierMileage
+        INTEGER     totalMileage
+        CHAR3       currency
+        TIMESTAMP   calculationDateTime
+    }
+
+    BSP_SETTLEMENT {
+        VARCHAR30   bspSettlementID     PK
+        VARCHAR3    airlineCode         FK
+        VARCHAR3    bspCountryCode
+        DATE        settlementPeriodStart
+        DATE        settlementPeriodEnd
+        DATE        settlementDate
+        DECIMAL14_2 totalSales
+        DECIMAL12_2 totalRefunds
+        DECIMAL12_2 totalCommissions
+        DECIMAL12_2 totalTaxes
+        DECIMAL14_2 netSettlementAmount
+        CHAR3       currency
+        VARCHAR20   settlementStatus
+        VARCHAR30   iataReferenceNumber
+    }
+
+    CASS_SETTLEMENT {
+        VARCHAR30   cassSettlementID    PK
+        VARCHAR3    airlineCode         FK
+        VARCHAR3    cassCountryCode
+        DATE        settlementPeriodStart
+        DATE        settlementPeriodEnd
+        DATE        settlementDate
+        DECIMAL14_2 totalFreightCharges
+        DECIMAL12_2 totalSurcharges
+        DECIMAL12_2 totalCommissions
+        DECIMAL14_2 netSettlementAmount
+        CHAR3       currency
+        VARCHAR20   settlementStatus
+        VARCHAR30   iataReferenceNumber
+    }
+
+    ACCOUNTS_PAYABLE_INVOICE {
+        VARCHAR30   apInvoiceID         PK
+        VARCHAR3    airlineCode         FK
+        VARCHAR30   workOrderID         FK
+        VARCHAR30   groundHandlerID     FK
+        VARCHAR30   glAccountID         FK
+        VARCHAR30   costCentreID        FK
+        VARCHAR30   supplierID
+        VARCHAR100  supplierName
+        VARCHAR30   supplierType
+        VARCHAR50   invoiceNumber
+        DATE        invoiceDate
+        DATE        dueDate
+        DECIMAL14_2 invoiceAmount
+        DECIMAL10_2 taxAmount
+        CHAR3       currency
+        VARCHAR20   paymentStatus
+        DATE        paymentDate
+    }
+
+    BUDGET {
+        VARCHAR30   budgetID            PK
+        VARCHAR3    airlineCode         FK
+        VARCHAR30   costCentreID        FK
+        VARCHAR30   glAccountID         FK
+        INTEGER     budgetYear
+        INTEGER     budgetMonth
+        DECIMAL14_2 budgetAmount
+        DECIMAL14_2 forecastAmount
+        DECIMAL14_2 actualAmount
+        CHAR3       currency
+        VARCHAR20   budgetType
+        VARCHAR50   approvedBy
+        DATE        approvedDate
+    }
+
+    %% ══════════════════════════════════════════
+    %% RELATIONSHIPS — Internal Finance Domain
+    %% ══════════════════════════════════════════
+
+    GL_ACCOUNT           ||--o{ GL_POSTING                 : "posted to"
+    GL_ACCOUNT           ||--o{ ACCOUNTS_PAYABLE_INVOICE   : "charged by"
+    GL_ACCOUNT           ||--o{ BUDGET                     : "budgeted for"
+    COST_CENTRE          ||--o{ GL_ACCOUNT                 : "owns"
+    COST_CENTRE          ||--o{ GL_POSTING                 : "allocated to"
+    COST_CENTRE          ||--o{ BUDGET                     : "holds"
+    COST_CENTRE          ||--o{ COST_CENTRE                : "contains"
+    INTERLINE_AGREEMENT  ||--o{ PRORATION_RULE             : "governs"
+    INTERLINE_AGREEMENT  ||--o{ INTERLINE_BILLING_COUPON   : "bills via"
+    PRORATION_RULE       ||--o{ INTERLINE_REVENUE_PRORATION : "applied by"
+
+    %% ══════════════════════════════════════════
+    %% RELATIONSHIPS — Cross-Domain
+    %% ══════════════════════════════════════════
+
+    AIRLINE              ||--o{ GL_ACCOUNT                 : "maintains"
+    AIRLINE              ||--o{ COST_CENTRE                : "organises"
+    AIRLINE              ||--o{ INTERLINE_AGREEMENT        : "holds"
+    AIRLINE              ||--o{ BSP_SETTLEMENT             : "settles via"
+    AIRLINE              ||--o{ CASS_SETTLEMENT            : "settles via"
+    AIRLINE              ||--o{ ACCOUNTS_PAYABLE_INVOICE   : "pays"
+    AIRLINE              ||--o{ BUDGET                     : "budgets"
+    ROUTE                ||--o{ PRORATION_RULE             : "scoped to"
+    ROUTE                ||--o{ INTERLINE_REVENUE_PRORATION : "prorated for"
+    REVENUE_RECORD       ||--o{ GL_POSTING                 : "posted via"
+    CARGO_REVENUE_RECORD ||--o{ GL_POSTING                 : "posted via"
+    TICKET               ||--o{ INTERLINE_BILLING_COUPON   : "generates"
+    TICKET               ||--o{ INTERLINE_REVENUE_PRORATION : "prorated on"
+    TICKET_COUPON        ||--o{ INTERLINE_BILLING_COUPON   : "evidenced by"
+    BOOKING              ||--o{ INTERLINE_REVENUE_PRORATION : "subject to"
+    WORK_ORDER           ||--o{ ACCOUNTS_PAYABLE_INVOICE   : "invoiced by"
+    GROUND_HANDLER       ||--o{ ACCOUNTS_PAYABLE_INVOICE   : "invoices"

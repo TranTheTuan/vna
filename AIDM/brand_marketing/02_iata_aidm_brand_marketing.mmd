@@ -1,0 +1,212 @@
+---
+title: IATA AIDM 25.1 — Brand & Marketing (integrated with Network & Alliances)
+---
+erDiagram
+
+    %% ══════════════════════════════════════════
+    %% NETWORK & ALLIANCES — referenced entities
+    %% (subset shown for cross-domain clarity)
+    %% ══════════════════════════════════════════
+
+    AIRLINE {
+        VARCHAR3   airlineCode         PK
+        VARCHAR100 airlineName
+        VARCHAR2   IATA_code
+        VARCHAR3   ICAO_code
+        VARCHAR3   country
+        VARCHAR3   homeBase            FK
+        BOOLEAN    allianceMember
+    }
+
+    ALLIANCE {
+        VARCHAR10  allianceCode        PK
+        VARCHAR100 allianceName
+        DATE       foundedDate
+        VARCHAR100 headquarters
+        VARCHAR255 websiteURL
+    }
+
+    ALLIANCE_MEMBERSHIP {
+        VARCHAR20  membershipID        PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR10  allianceCode        FK
+        VARCHAR20  membershipType
+        DATE       joinDate
+        VARCHAR20  status
+    }
+
+    ROUTE_NETWORK {
+        VARCHAR30  routeNetworkID      PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR20  routeType
+        VARCHAR3   hubAirport
+        INTEGER    version
+        VARCHAR5   seasonCode
+    }
+
+    ROUTE {
+        VARCHAR30  routeID                PK
+        VARCHAR30  routeNetworkID         FK
+        VARCHAR3   originAirportCode      FK
+        VARCHAR3   destinationAirportCode FK
+        DECIMAL8_2 distance
+        VARCHAR10  distanceType
+        VARCHAR20  routeStatus
+        VARCHAR15  onlineStatus
+    }
+
+    FREQUENT_FLYER_PARTNER {
+        VARCHAR30  ffpPartnerID           PK
+        VARCHAR3   sponsorAirlineCode     FK
+        VARCHAR3   partnerAirlineCode     FK
+        VARCHAR100 programName
+        CHAR1      earnEnabled
+        CHAR1      redeemEnabled
+        CHAR1      statusRecognition
+        DECIMAL6_4 conversionRate
+        DATE       effectiveDate
+        DATE       expiryDate
+    }
+
+    %% ══════════════════════════════════════════
+    %% BRAND & MARKETING — new domain entities
+    %% ══════════════════════════════════════════
+
+    BRAND {
+        VARCHAR30  brandID              PK
+        VARCHAR3   airlineCode          FK
+        VARCHAR100 brandName
+        VARCHAR20  brandTier
+        VARCHAR255 brandGuidelines
+        CHAR7      primaryColourHex
+        CHAR7      secondaryColourHex
+        VARCHAR255 logoURL
+        DATE       effectiveDate
+        DATE       expiryDate
+    }
+
+    BRAND_ALLIANCE_TOUCHPOINT {
+        VARCHAR30  touchpointID         PK
+        VARCHAR30  brandID              FK
+        VARCHAR10  allianceCode         FK
+        VARCHAR30  touchpointType
+        INTEGER    displayPriority
+        CHAR1      cobranded
+        DATE       effectiveDate
+        DATE       expiryDate
+    }
+
+    LOYALTY_PROGRAMME {
+        VARCHAR30  loyaltyProgrammeID   PK
+        VARCHAR3   airlineCode          FK
+        VARCHAR100 programmeName
+        VARCHAR20  programmeType
+        CHAR3      currency
+        VARCHAR50  expiryPolicy
+        VARCHAR20  status
+        DATE       launchDate
+    }
+
+    LOYALTY_TIER {
+        VARCHAR30  loyaltyTierID        PK
+        VARCHAR30  loyaltyProgrammeID   FK
+        VARCHAR50  tierName
+        INTEGER    tierLevel
+        INTEGER    minMilesRequired
+        INTEGER    minSegmentsRequired
+        VARCHAR20  tierStatus
+        DATE       effectiveDate
+        DATE       expiryDate
+    }
+
+    LOYALTY_TIER_BENEFIT {
+        VARCHAR30  benefitID            PK
+        VARCHAR30  loyaltyTierID        FK
+        VARCHAR30  ffpPartnerID         FK
+        VARCHAR20  membershipID         FK
+        VARCHAR30  benefitType
+        VARCHAR100 benefitValue
+        VARCHAR3   applicableCarrier    FK
+        DATE       effectiveDate
+        DATE       expiryDate
+    }
+
+    MARKETING_CAMPAIGN {
+        VARCHAR30   campaignID          PK
+        VARCHAR3    airlineCode         FK
+        VARCHAR100  campaignName
+        VARCHAR30   campaignType
+        VARCHAR50   targetSegment
+        VARCHAR30   channel
+        DECIMAL12_2 budget
+        CHAR3       currency
+        DATE        startDate
+        DATE        endDate
+        VARCHAR20   status
+        VARCHAR100  KPI_target
+    }
+
+    CAMPAIGN_ROUTE_TARGET {
+        VARCHAR30  campaignRouteID      PK
+        VARCHAR30  campaignID           FK
+        VARCHAR30  routeNetworkID       FK
+        VARCHAR30  routeID              FK
+        VARCHAR30  promotionType
+        VARCHAR20  discountType
+        DECIMAL8_2 discountValue
+        DATE       effectiveDate
+        DATE       expiryDate
+    }
+
+    OFFER {
+        VARCHAR30   offerID             PK
+        VARCHAR3    airlineCode         FK
+        VARCHAR30   campaignID          FK
+        VARCHAR30   offerType
+        VARCHAR100  offerName
+        TEXT        offerDescription
+        CHAR3       currency
+        DECIMAL12_2 offerPrice
+        VARCHAR5    fareClass
+        DATE        effectiveDate
+        DATE        expiryDate
+        VARCHAR20   status
+    }
+
+    OFFER_ROUTE_APPLICABILITY {
+        VARCHAR30  offerRouteID         PK
+        VARCHAR30  offerID              FK
+        VARCHAR30  routeID              FK
+        VARCHAR10  cabinClass
+        VARCHAR7   dayOfWeekMask
+        INTEGER    minAdvancePurchase
+        INTEGER    maxAdvancePurchase
+        DATE       effectiveDate
+        DATE       expiryDate
+    }
+
+    %% ══════════════════════════════════════════
+    %% RELATIONSHIPS — Internal Brand & Marketing
+    %% ══════════════════════════════════════════
+
+    AIRLINE                  ||--|{ BRAND                      : "owns"
+    BRAND                    ||--o{ BRAND_ALLIANCE_TOUCHPOINT  : "presented at"
+    AIRLINE                  ||--|{ LOYALTY_PROGRAMME          : "runs"
+    LOYALTY_PROGRAMME        ||--|{ LOYALTY_TIER               : "has tier"
+    LOYALTY_TIER             ||--o{ LOYALTY_TIER_BENEFIT       : "grants"
+    AIRLINE                  ||--o{ MARKETING_CAMPAIGN         : "executes"
+    MARKETING_CAMPAIGN       ||--o{ CAMPAIGN_ROUTE_TARGET      : "targets"
+    MARKETING_CAMPAIGN       ||--o{ OFFER                      : "produces"
+    OFFER                    ||--o{ OFFER_ROUTE_APPLICABILITY  : "applies to"
+
+    %% ══════════════════════════════════════════════════════
+    %% RELATIONSHIPS — Cross-domain (B&M → Network & Alliances)
+    %% ══════════════════════════════════════════════════════
+
+    ALLIANCE                 ||--o{ BRAND_ALLIANCE_TOUCHPOINT  : "hosts"
+    FREQUENT_FLYER_PARTNER   ||--o{ LOYALTY_TIER_BENEFIT       : "enables"
+    ALLIANCE_MEMBERSHIP      ||--o{ LOYALTY_TIER_BENEFIT       : "qualifies"
+    ROUTE_NETWORK            ||--o{ CAMPAIGN_ROUTE_TARGET      : "promoted by"
+    ROUTE                    ||--o{ CAMPAIGN_ROUTE_TARGET      : "featured in"
+    ROUTE                    ||--o{ OFFER_ROUTE_APPLICABILITY  : "covered by"
+    ROUTE_NETWORK            ||--|{ ROUTE                      : "contains"

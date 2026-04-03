@@ -3,11 +3,11 @@ package configs
 import "fmt"
 
 type Database struct {
-	Host     string `env:"HOST"`
-	Port     int    `env:"PORT"`
-	User     string `env:"USER"`
-	Password string `env:"PASSWORD"`
-	DBName   string `env:"DBNAME"`
+	Host     string `env:"HOST"     envDefault:"localhost"`
+	Port     int    `env:"PORT"     envDefault:"5432"`
+	User     string `env:"USER"     envDefault:"db-user"`
+	Password string `env:"PASSWORD" envDefault:"db-password"`
+	DBName   string `env:"DBNAME"   envDefault:"vna"`
 }
 
 func (db Database) BuildConnectionString() string {

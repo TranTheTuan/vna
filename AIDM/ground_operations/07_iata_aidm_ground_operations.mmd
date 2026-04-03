@@ -1,0 +1,248 @@
+---
+title: IATA AIDM 25.1 — Ground Operations
+---
+erDiagram
+
+    %% ══════════════════════════════════════════
+    %% UPSTREAM DOMAIN ENTITIES (FK references)
+    %% ══════════════════════════════════════════
+
+    AIRLINE {
+        VARCHAR3   airlineCode         PK
+        VARCHAR100 airlineName
+    }
+
+    ROUTE {
+        VARCHAR30  routeID             PK
+        VARCHAR3   originAirportCode   FK
+        VARCHAR3   destinationAirportCode FK
+        VARCHAR20  routeStatus
+    }
+
+    BOOKING {
+        VARCHAR30   bookingID          PK
+        VARCHAR3    airlineCode        FK
+        VARCHAR20   bookingStatus
+    }
+
+    BOOKING_SEGMENT {
+        VARCHAR30  bookingSegmentID    PK
+        VARCHAR30  bookingID           FK
+        VARCHAR10  flightNumber
+        TIMESTAMP  departureDateTime
+        TIMESTAMP  arrivalDateTime
+    }
+
+    TICKET {
+        VARCHAR30  ticketID            PK
+        VARCHAR30  bookingID           FK
+        VARCHAR14  ticketNumber
+        VARCHAR20  ticketStatus
+    }
+
+    CUSTOMER_PROFILE {
+        VARCHAR30  customerID          PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR50  firstName
+        VARCHAR50  lastName
+    }
+
+    SEAT {
+        VARCHAR30  seatID              PK
+        VARCHAR30  seatMapID           FK
+        VARCHAR5   seatNumber
+        VARCHAR20  seatType
+        CHAR1      chargeable
+    }
+
+    ANCILLARY_SERVICE {
+        VARCHAR30  ancillaryServiceID  PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR10  serviceCode
+        VARCHAR30  serviceCategory
+    }
+
+    INVENTORY_CLASS {
+        VARCHAR30  inventoryClassID    PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR30  routeID             FK
+        VARCHAR2   bookingClass
+        INTEGER    availableCount
+        VARCHAR10  classStatus
+    }
+
+    %% ══════════════════════════════════════════
+    %% DOMAIN 07 — GROUND OPERATIONS ENTITIES
+    %% ══════════════════════════════════════════
+
+    AIRPORT_SLOT {
+        VARCHAR30  slotID              PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR30  routeID             FK
+        VARCHAR3   airportCode
+        VARCHAR10  slotType
+        TIMESTAMP  scheduledDateTime
+        TIMESTAMP  allocatedDateTime
+        VARCHAR5   slotSeason
+        VARCHAR50  slotCoordinator
+        VARCHAR20  slotStatus
+        DECIMAL5_4 historicUsageRate
+        DATE       effectiveDate
+        DATE       expiryDate
+    }
+
+    GROUND_HANDLER {
+        VARCHAR30  groundHandlerID     PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR100 handlerName
+        VARCHAR3   airportCode
+        VARCHAR30  handlerType
+        VARCHAR255 servicesProvided
+        CHAR1      isgsMember
+        DATE       contractStartDate
+        DATE       contractEndDate
+        VARCHAR20  status
+    }
+
+    FLIGHT_TURNAROUND {
+        VARCHAR30  turnaroundID        PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR30  inventoryClassID    FK
+        VARCHAR30  groundHandlerID     FK
+        VARCHAR10  flightNumber
+        VARCHAR10  aircraftRegistration
+        VARCHAR10  aircraftTypeCode
+        VARCHAR3   airportCode
+        TIMESTAMP  scheduledArrivalDateTime
+        TIMESTAMP  actualArrivalDateTime
+        TIMESTAMP  scheduledDepartureDateTime
+        TIMESTAMP  actualDepartureDateTime
+        VARCHAR10  standsGate
+        VARCHAR20  turnaroundStatus
+        INTEGER    targetTurnaroundMinutes
+        INTEGER    actualTurnaroundMinutes
+        INTEGER    delayMinutes
+        VARCHAR5   primaryDelayCode
+    }
+
+    GROUND_SERVICE_EVENT {
+        VARCHAR30   groundServiceEventID PK
+        VARCHAR30   turnaroundID         FK
+        VARCHAR30   groundHandlerID      FK
+        VARCHAR30   serviceType
+        TIMESTAMP   scheduledStartDateTime
+        TIMESTAMP   actualStartDateTime
+        TIMESTAMP   scheduledEndDateTime
+        TIMESTAMP   actualEndDateTime
+        VARCHAR20   serviceStatus
+        VARCHAR50   serviceProviderRef
+        DECIMAL10_2 quantity
+        VARCHAR20   unit
+        VARCHAR255  notes
+    }
+
+    GSE_ALLOCATION {
+        VARCHAR30  gseAllocationID     PK
+        VARCHAR30  turnaroundID        FK
+        VARCHAR30  equipmentType
+        VARCHAR30  equipmentID
+        TIMESTAMP  scheduledStartDateTime
+        TIMESTAMP  actualStartDateTime
+        TIMESTAMP  scheduledEndDateTime
+        TIMESTAMP  actualEndDateTime
+        VARCHAR20  allocationStatus
+        VARCHAR30  operatorID
+    }
+
+    CHECK_IN_RECORD {
+        VARCHAR30  checkInRecordID     PK
+        VARCHAR30  bookingID           FK
+        VARCHAR30  bookingSegmentID    FK
+        VARCHAR30  customerID          FK
+        VARCHAR3   airlineCode         FK
+        VARCHAR20  checkInChannel
+        TIMESTAMP  checkInDateTime
+        VARCHAR20  checkInStatus
+        DECIMAL5_1 passengerWeightKg
+        CHAR1      documentsVerified
+        CHAR1      apiTransmitted
+        INTEGER    boardingSequence
+    }
+
+    BOARDING_PASS {
+        VARCHAR30  boardingPassID      PK
+        VARCHAR30  checkInRecordID     FK
+        VARCHAR30  bookingSegmentID    FK
+        VARCHAR30  ticketID            FK
+        VARCHAR30  customerID          FK
+        VARCHAR30  seatID              FK
+        VARCHAR5   boardingGroup
+        VARCHAR10  boardingZone
+        VARCHAR255 barcodeData
+        VARCHAR10  barcodeFormat
+        TIMESTAMP  issuanceDateTime
+        VARCHAR10  boardingGate
+        TIMESTAMP  boardingCutoffDateTime
+        VARCHAR20  boardingPassStatus
+        CHAR1      mobilePass
+    }
+
+    BAGGAGE_ITEM {
+        VARCHAR30  baggageItemID       PK
+        VARCHAR30  bookingSegmentID    FK
+        VARCHAR30  ancillaryServiceID  FK
+        VARCHAR15  baggageTagNumber
+        VARCHAR20  baggageType
+        DECIMAL5_1 weightKg
+        VARCHAR20  dimensionsCm
+        VARCHAR20  baggageStatus
+        CHAR1      rushBaggage
+        VARCHAR20  screeningStatus
+        VARCHAR20  loadPosition
+        VARCHAR3   destinationAirportCode
+        CHAR1      throughBaggage
+    }
+
+    BAGGAGE_RECONCILIATION {
+        VARCHAR30  reconciliationID    PK
+        VARCHAR30  turnaroundID        FK
+        VARCHAR30  baggageItemID       FK
+        VARCHAR30  boardingPassID      FK
+        VARCHAR20  reconciliationStatus
+        TIMESTAMP  scanDateTime
+        VARCHAR30  scanLocation
+        VARCHAR50  offloadReason
+    }
+
+    %% ══════════════════════════════════════════
+    %% RELATIONSHIPS — Internal Ground Operations
+    %% ══════════════════════════════════════════
+
+    FLIGHT_TURNAROUND    ||--|{ GROUND_SERVICE_EVENT     : "requires"
+    FLIGHT_TURNAROUND    ||--o{ GSE_ALLOCATION           : "uses"
+    FLIGHT_TURNAROUND    ||--o{ BAGGAGE_RECONCILIATION   : "reconciles"
+    CHECK_IN_RECORD      ||--|| BOARDING_PASS            : "produces"
+    BOARDING_PASS        ||--o{ BAGGAGE_RECONCILIATION   : "matched against"
+    BAGGAGE_ITEM         ||--|| BAGGAGE_RECONCILIATION   : "reconciled by"
+
+    %% ══════════════════════════════════════════
+    %% RELATIONSHIPS — Cross-Domain
+    %% ══════════════════════════════════════════
+
+    AIRLINE              ||--o{ AIRPORT_SLOT             : "holds"
+    AIRLINE              ||--o{ GROUND_HANDLER           : "contracts"
+    AIRLINE              ||--o{ FLIGHT_TURNAROUND        : "operates"
+    AIRLINE              ||--o{ CHECK_IN_RECORD          : "processes"
+    ROUTE                ||--o{ AIRPORT_SLOT             : "allocated for"
+    INVENTORY_CLASS      ||--o{ FLIGHT_TURNAROUND        : "linked to"
+    GROUND_HANDLER       ||--|{ GROUND_SERVICE_EVENT     : "performs"
+    GROUND_HANDLER       ||--|{ FLIGHT_TURNAROUND        : "handles"
+    BOOKING              ||--o{ CHECK_IN_RECORD          : "checked in via"
+    BOOKING_SEGMENT      ||--o{ CHECK_IN_RECORD          : "processed at"
+    BOOKING_SEGMENT      ||--o{ BOARDING_PASS            : "issued for"
+    BOOKING_SEGMENT      ||--o{ BAGGAGE_ITEM             : "carries"
+    TICKET               ||--o{ BOARDING_PASS            : "evidenced by"
+    CUSTOMER_PROFILE     ||--o{ CHECK_IN_RECORD          : "checks in"
+    CUSTOMER_PROFILE     ||--o{ BOARDING_PASS            : "holds"
+    SEAT                 ||--o{ BOARDING_PASS            : "assigned on"
+    ANCILLARY_SERVICE    ||--o{ BAGGAGE_ITEM             : "covers"

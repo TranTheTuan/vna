@@ -12,12 +12,13 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -o main ./cmd/api/main.go
 
 # Run Stage
-FROM alpine:latest
+FROM alpine:3.21
 
 WORKDIR /app
 
-# Ensure logs directory exists
-RUN mkdir -p /app/logs
+# ca-certificates: required for HTTPS calls to OpenResponses API
+# tzdata: required for correct timezone handling
+RUN apk add --no-cache ca-certificates tzdata
 
 # Copy binary from builder
 COPY --from=builder /app/main .
