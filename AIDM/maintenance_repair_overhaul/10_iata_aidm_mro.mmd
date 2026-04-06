@@ -1,0 +1,255 @@
+---
+title: IATA AIDM 25.1 — Maintenance, Repair & Overhaul (MRO)
+---
+erDiagram
+
+    %% ══════════════════════════════════════════
+    %% UPSTREAM DOMAIN ENTITIES (FK references)
+    %% ══════════════════════════════════════════
+
+    AIRLINE {
+        VARCHAR3   airlineCode         PK
+        VARCHAR100 airlineName
+    }
+
+    AIRCRAFT {
+        VARCHAR30   aircraftID         PK
+        VARCHAR3    airlineCode        FK
+        VARCHAR10   registration
+        VARCHAR10   aircraftTypeCode
+        VARCHAR20   status
+        DECIMAL10_2 maxTakeoffWeightKg
+    }
+
+    CREW_MEMBER {
+        VARCHAR30  crewMemberID        PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR20  employeeID
+        VARCHAR50  firstName
+        VARCHAR50  lastName
+        VARCHAR20  crewType
+    }
+
+    FLIGHT {
+        VARCHAR30  flightID            PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR10  flightNumber
+        TIMESTAMP  scheduledDepartureDateTime
+        VARCHAR20  flightStatus
+    }
+
+    %% ══════════════════════════════════════════
+    %% DOMAIN 10 — MRO ENTITIES
+    %% ══════════════════════════════════════════
+
+    MAINTENANCE_PROGRAMME {
+        VARCHAR30  maintenanceProgrammeID PK
+        VARCHAR3   airlineCode            FK
+        VARCHAR10  aircraftTypeCode
+        VARCHAR100 programmeName
+        VARCHAR10  programmeRevision
+        VARCHAR10  approvalAuthority
+        VARCHAR50  approvalReference
+        DATE       approvalDate
+        DATE       revisionDate
+        VARCHAR20  status
+    }
+
+    MAINTENANCE_TASK {
+        VARCHAR30  maintenanceTaskID      PK
+        VARCHAR30  maintenanceProgrammeID FK
+        VARCHAR30  taskCardNumber
+        VARCHAR255 taskDescription
+        VARCHAR30  taskType
+        VARCHAR5   checkLevel
+        DECIMAL8_2 intervalFH
+        INTEGER    intervalFC
+        INTEGER    intervalDays
+        DECIMAL5_2 tolerancePct
+        DECIMAL6_2 estimatedManHours
+        VARCHAR10  zoneCode
+        VARCHAR5   ataChapter
+        VARCHAR50  accessRequired
+    }
+
+    AIRCRAFT_MAINTENANCE_RECORD {
+        VARCHAR30   amrID               PK
+        VARCHAR30   aircraftID          FK
+        VARCHAR30   maintenanceTaskID   FK
+        DATE        lastCompletedDate
+        DECIMAL10_2 lastCompletedFH
+        INTEGER     lastCompletedFC
+        DATE        nextDueDate
+        DECIMAL10_2 nextDueFH
+        INTEGER     nextDueFC
+        CHAR1       overdueFlag
+        CHAR1       deferralAllowed
+        DATE        deferralExpiryDate
+        TIMESTAMP   lastUpdatedDateTime
+    }
+
+    AMO {
+        VARCHAR30  amoID               PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR100 amoName
+        VARCHAR30  approvalNumber
+        VARCHAR10  approvalAuthority
+        VARCHAR20  amoType
+        VARCHAR3   countryCode
+        VARCHAR3   airportCode
+        DATE       approvalExpiryDate
+        VARCHAR20  status
+    }
+
+    WORK_ORDER {
+        VARCHAR30  workOrderID          PK
+        VARCHAR30  aircraftID           FK
+        VARCHAR3   airlineCode          FK
+        VARCHAR30  amoID                FK
+        VARCHAR30  certifyingEngineerID FK
+        VARCHAR20  workOrderType
+        VARCHAR5   checkLevel
+        VARCHAR20  workOrderStatus
+        TIMESTAMP  openedDateTime
+        TIMESTAMP  plannedStartDateTime
+        TIMESTAMP  plannedEndDateTime
+        TIMESTAMP  actualStartDateTime
+        TIMESTAMP  actualEndDateTime
+        DECIMAL8_2 totalManHoursActual
+        VARCHAR50  maintenanceLocation
+        VARCHAR3   airportCode
+        CHAR1      crsIssued
+        VARCHAR50  crsReference
+        TIMESTAMP  crsIssuedDateTime
+    }
+
+    WORK_ORDER_TASK {
+        VARCHAR30  workOrderTaskID      PK
+        VARCHAR30  workOrderID          FK
+        VARCHAR30  maintenanceTaskID    FK
+        VARCHAR20  taskStatus
+        VARCHAR30  assignedEngineerID
+        DECIMAL6_2 actualManHours
+        TIMESTAMP  completedDateTime
+        VARCHAR500 findingsNarrative
+        VARCHAR255 partsUsed
+    }
+
+    DEFECT_RECORD {
+        VARCHAR30  defectID             PK
+        VARCHAR30  aircraftID           FK
+        VARCHAR30  flightID             FK
+        VARCHAR30  workOrderID          FK
+        VARCHAR20  defectSource
+        VARCHAR5   ataChapter
+        VARCHAR500 defectDescription
+        VARCHAR20  defectCategory
+        VARCHAR20  melReference
+        VARCHAR20  defectStatus
+        VARCHAR5   deferralCategory
+        DATE       deferralExpiryDate
+        TIMESTAMP  reportedDateTime
+        TIMESTAMP  rectifiedDateTime
+        CHAR1      airworthyStatus
+    }
+
+    AIRWORTHINESS_DIRECTIVE {
+        VARCHAR30  adID                 PK
+        VARCHAR30  adNumber
+        VARCHAR10  issuingAuthority
+        VARCHAR10  applicableAircraftType
+        VARCHAR255 adTitle
+        TEXT       adDescription
+        VARCHAR20  complianceType
+        DATE       complianceDeadlineDate
+        DECIMAL8_2 complianceFH
+        INTEGER    complianceFC
+        DECIMAL8_2 recurringIntervalFH
+        INTEGER    recurringIntervalDays
+        DATE       effectiveDate
+        VARCHAR20  status
+    }
+
+    AD_COMPLIANCE_RECORD {
+        VARCHAR30   adComplianceID      PK
+        VARCHAR30   adID                FK
+        VARCHAR30   aircraftID          FK
+        VARCHAR30   workOrderID         FK
+        VARCHAR20   complianceStatus
+        DATE        lastComplianceDate
+        DECIMAL10_2 lastComplianceFH
+        INTEGER     lastComplianceFC
+        DATE        nextDueDate
+        DECIMAL10_2 nextDueFH
+        INTEGER     nextDueFC
+        VARCHAR255  complianceNotes
+    }
+
+    COMPONENT {
+        VARCHAR30   componentID         PK
+        VARCHAR30   aircraftID          FK
+        VARCHAR3    airlineCode         FK
+        VARCHAR30   partNumber
+        VARCHAR30   serialNumber
+        VARCHAR30   componentType
+        VARCHAR100  componentDescription
+        VARCHAR50   manufacturerName
+        DATE        installationDate
+        DECIMAL10_2 installationFH
+        INTEGER     installationFC
+        DECIMAL10_2 componentFHTSN
+        INTEGER     componentFCTSN
+        DECIMAL10_2 componentFHTSO
+        INTEGER     componentFCTSO
+        DECIMAL10_2 hardLifeLimitFH
+        INTEGER     hardLifeLimitFC
+        VARCHAR20   componentStatus
+        VARCHAR30   locationCode
+    }
+
+    PARTS_INVENTORY {
+        VARCHAR30   partsInventoryID    PK
+        VARCHAR3    airlineCode         FK
+        VARCHAR30   partNumber
+        VARCHAR100  partDescription
+        VARCHAR20   partCategory
+        INTEGER     quantityOnHand
+        INTEGER     quantityOnOrder
+        INTEGER     minimumStockLevel
+        DECIMAL12_2 unitCost
+        CHAR3       currency
+        VARCHAR50   warehouseLocation
+        VARCHAR3    airportCode
+        VARCHAR30   certificationRef
+        DATE        expiryDate
+        VARCHAR10   conditionCode
+    }
+
+    %% ══════════════════════════════════════════
+    %% RELATIONSHIPS — Internal MRO Domain
+    %% ══════════════════════════════════════════
+
+    MAINTENANCE_PROGRAMME  ||--|{ MAINTENANCE_TASK          : "contains"
+    MAINTENANCE_TASK       ||--o{ AIRCRAFT_MAINTENANCE_RECORD : "tracked by"
+    MAINTENANCE_TASK       ||--o{ WORK_ORDER_TASK           : "executed in"
+    WORK_ORDER             ||--|{ WORK_ORDER_TASK           : "comprises"
+    WORK_ORDER             ||--o{ DEFECT_RECORD             : "addresses"
+    AIRWORTHINESS_DIRECTIVE ||--|{ AD_COMPLIANCE_RECORD     : "tracked by"
+    AMO                    ||--o{ WORK_ORDER                : "performs"
+
+    %% ══════════════════════════════════════════
+    %% RELATIONSHIPS — Cross-Domain
+    %% ══════════════════════════════════════════
+
+    AIRLINE                ||--o{ MAINTENANCE_PROGRAMME     : "approves"
+    AIRLINE                ||--o{ WORK_ORDER                : "raises"
+    AIRLINE                ||--o{ AMO                       : "contracts"
+    AIRLINE                ||--o{ COMPONENT                 : "owns"
+    AIRLINE                ||--o{ PARTS_INVENTORY           : "holds"
+    AIRCRAFT               ||--o{ AIRCRAFT_MAINTENANCE_RECORD : "tracked for"
+    AIRCRAFT               ||--o{ WORK_ORDER                : "subject to"
+    AIRCRAFT               ||--o{ DEFECT_RECORD             : "has"
+    AIRCRAFT               ||--o{ AD_COMPLIANCE_RECORD      : "complied for"
+    AIRCRAFT               ||--o{ COMPONENT                 : "fitted with"
+    CREW_MEMBER            ||--o{ WORK_ORDER                : "certifies"
+    FLIGHT                 ||--o{ DEFECT_RECORD             : "generates"

@@ -1,0 +1,204 @@
+---
+title: IATA AIDM 25.1 — Product
+---
+erDiagram
+
+    %% ══════════════════════════════════════════
+    %% UPSTREAM DOMAIN ENTITIES (FK references)
+    %% ══════════════════════════════════════════
+
+    AIRLINE {
+        VARCHAR3   airlineCode         PK
+        VARCHAR100 airlineName
+        BOOLEAN    allianceMember
+    }
+
+    BRAND {
+        VARCHAR30  brandID             PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR100 brandName
+        VARCHAR20  brandTier
+    }
+
+    ROUTE_NETWORK {
+        VARCHAR30  routeNetworkID      PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR5   seasonCode
+    }
+
+    ROUTE {
+        VARCHAR30  routeID                PK
+        VARCHAR30  routeNetworkID         FK
+        VARCHAR3   originAirportCode      FK
+        VARCHAR3   destinationAirportCode FK
+        VARCHAR20  routeStatus
+    }
+
+    OFFER {
+        VARCHAR30   offerID             PK
+        VARCHAR3    airlineCode         FK
+        VARCHAR30   campaignID          FK
+        VARCHAR30   offerType
+        DECIMAL12_2 offerPrice
+        VARCHAR20   status
+    }
+
+    %% ══════════════════════════════════════════
+    %% DOMAIN 03 — PRODUCT ENTITIES
+    %% ══════════════════════════════════════════
+
+    PRODUCT_CATALOGUE {
+        VARCHAR30  productCatalogueID   PK
+        VARCHAR3   airlineCode          FK
+        VARCHAR30  brandID              FK
+        VARCHAR20  productCode
+        VARCHAR100 productName
+        VARCHAR30  productCategory
+        VARCHAR30  productType
+        TEXT       productDescription
+        VARCHAR20  status
+        DATE       effectiveDate
+        DATE       expiryDate
+    }
+
+    FARE_FAMILY {
+        VARCHAR30  fareFamilyID         PK
+        VARCHAR30  productCatalogueID   FK
+        VARCHAR3   airlineCode          FK
+        VARCHAR10  fareFamilyCode
+        VARCHAR50  fareFamilyName
+        VARCHAR10  cabinClass
+        CHAR1      refundable
+        CHAR1      changeable
+        CHAR1      seatSelectionIncluded
+        INTEGER    baggageAllowanceKg
+        CHAR1      priorityBoardingIncluded
+        DECIMAL5_2 milesAccrualRate
+        DATE       effectiveDate
+        DATE       expiryDate
+    }
+
+    FARE_FAMILY_RULE {
+        VARCHAR30   fareRuleID          PK
+        VARCHAR30   fareFamilyID        FK
+        VARCHAR30   ruleCategory
+        VARCHAR255  ruleDescription
+        VARCHAR20   penaltyType
+        DECIMAL10_2 penaltyAmount
+        DECIMAL5_2  penaltyPercentage
+        CHAR3       currency
+        INTEGER     minHoursBeforeDeparture
+        INTEGER     maxHoursBeforeDeparture
+        DATE        effectiveDate
+        DATE        expiryDate
+    }
+
+    CABIN_CLASS {
+        VARCHAR30  cabinClassID         PK
+        VARCHAR3   airlineCode          FK
+        VARCHAR5   cabinCode
+        VARCHAR50  cabinName
+        TEXT       cabinDescription
+        INTEGER    pitchInches
+        DECIMAL4_1 widthInches
+        CHAR1      lieFlat
+        CHAR1      personalIFE
+        CHAR1      powerOutlet
+        CHAR1      wifiAvailable
+        VARCHAR20  status
+    }
+
+    SEAT_MAP {
+        VARCHAR30  seatMapID            PK
+        VARCHAR3   airlineCode          FK
+        VARCHAR10  aircraftTypeCode
+        VARCHAR10  configurationCode
+        INTEGER    totalSeats
+        INTEGER    economySeats
+        INTEGER    premiumEconomySeats
+        INTEGER    businessSeats
+        INTEGER    firstClassSeats
+        VARCHAR10  deckConfiguration
+        DATE       effectiveDate
+        DATE       expiryDate
+    }
+
+    SEAT {
+        VARCHAR30  seatID               PK
+        VARCHAR30  seatMapID            FK
+        VARCHAR30  cabinClassID         FK
+        VARCHAR5   seatNumber
+        INTEGER    seatRow
+        CHAR1      seatColumn
+        VARCHAR20  seatType
+        CHAR1      extraLegroom
+        CHAR1      reclineRestricted
+        CHAR1      bassinet
+        CHAR1      chargeable
+        VARCHAR20  status
+    }
+
+    ANCILLARY_SERVICE {
+        VARCHAR30   ancillaryServiceID  PK
+        VARCHAR30   productCatalogueID  FK
+        VARCHAR3    airlineCode         FK
+        VARCHAR10   serviceCode
+        VARCHAR100  serviceName
+        VARCHAR30   serviceCategory
+        VARCHAR30   deliveryChannel
+        VARCHAR20   unitType
+        INTEGER     maxUnitsPerPax
+        VARCHAR20   chargeType
+        DECIMAL10_2 basePrice
+        CHAR3       currency
+        CHAR1       taxable
+        VARCHAR20   status
+        DATE        effectiveDate
+        DATE        expiryDate
+    }
+
+    PRODUCT_ROUTE_APPLICABILITY {
+        VARCHAR30  productRouteID       PK
+        VARCHAR30  productCatalogueID   FK
+        VARCHAR30  routeNetworkID       FK
+        VARCHAR30  routeID              FK
+        VARCHAR20  applicabilityType
+        DATE       effectiveDate
+        DATE       expiryDate
+    }
+
+    OFFER_PRODUCT_BUNDLE {
+        VARCHAR30   offerProductID      PK
+        VARCHAR30   offerID             FK
+        VARCHAR30   productCatalogueID  FK
+        INTEGER     quantity
+        INTEGER     sequenceNumber
+        DECIMAL10_2 overridePrice
+        CHAR3       currency
+    }
+
+    %% ══════════════════════════════════════════
+    %% RELATIONSHIPS — Internal Product Domain
+    %% ══════════════════════════════════════════
+
+    PRODUCT_CATALOGUE    ||--o{ FARE_FAMILY                 : "defines"
+    PRODUCT_CATALOGUE    ||--o{ ANCILLARY_SERVICE           : "includes"
+    PRODUCT_CATALOGUE    ||--o{ PRODUCT_ROUTE_APPLICABILITY : "scoped to"
+    FARE_FAMILY          ||--|{ FARE_FAMILY_RULE            : "governed by"
+    SEAT_MAP             ||--|{ SEAT                        : "contains"
+    CABIN_CLASS          ||--|{ SEAT                        : "classifies"
+
+    %% ══════════════════════════════════════════
+    %% RELATIONSHIPS — Cross-Domain
+    %% ══════════════════════════════════════════
+
+    AIRLINE              ||--|{ PRODUCT_CATALOGUE           : "owns"
+    AIRLINE              ||--o{ FARE_FAMILY                 : "offers"
+    AIRLINE              ||--o{ CABIN_CLASS                 : "defines"
+    AIRLINE              ||--o{ SEAT_MAP                    : "configures"
+    AIRLINE              ||--o{ ANCILLARY_SERVICE           : "provides"
+    BRAND                ||--o{ PRODUCT_CATALOGUE           : "associated with"
+    ROUTE_NETWORK        ||--o{ PRODUCT_ROUTE_APPLICABILITY : "scopes"
+    ROUTE                ||--o{ PRODUCT_ROUTE_APPLICABILITY : "scopes"
+    OFFER                ||--o{ OFFER_PRODUCT_BUNDLE        : "bundles"
+    PRODUCT_CATALOGUE    ||--o{ OFFER_PRODUCT_BUNDLE        : "included in"

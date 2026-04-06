@@ -1,0 +1,264 @@
+---
+title: IATA AIDM 25.1 — Customer & Loyalty
+---
+erDiagram
+
+    %% ══════════════════════════════════════════
+    %% UPSTREAM DOMAIN ENTITIES (FK references)
+    %% ══════════════════════════════════════════
+
+    AIRLINE {
+        VARCHAR3   airlineCode         PK
+        VARCHAR100 airlineName
+    }
+
+    LOYALTY_PROGRAMME {
+        VARCHAR30  loyaltyProgrammeID  PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR100 programmeName
+        VARCHAR20  status
+    }
+
+    LOYALTY_TIER {
+        VARCHAR30  loyaltyTierID       PK
+        VARCHAR30  loyaltyProgrammeID  FK
+        VARCHAR50  tierName
+        INTEGER    tierLevel
+    }
+
+    LOYALTY_TIER_BENEFIT {
+        VARCHAR30  benefitID           PK
+        VARCHAR30  loyaltyTierID       FK
+        VARCHAR30  benefitType
+        VARCHAR100 benefitValue
+    }
+
+    FREQUENT_FLYER_PARTNER {
+        VARCHAR30  ffpPartnerID        PK
+        VARCHAR3   sponsorAirlineCode  FK
+        VARCHAR100 programName
+    }
+
+    OFFER {
+        VARCHAR30  offerID             PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR30  offerType
+        VARCHAR20  status
+    }
+
+    FARE_FAMILY {
+        VARCHAR30  fareFamilyID        PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR10  fareFamilyCode
+        VARCHAR10  cabinClass
+    }
+
+    BOOKING {
+        VARCHAR30   bookingID          PK
+        VARCHAR3    airlineCode        FK
+        VARCHAR20   bookingStatus
+    }
+
+    TICKET {
+        VARCHAR30   ticketID           PK
+        VARCHAR30   bookingID          FK
+        VARCHAR14   ticketNumber
+        VARCHAR20   ticketStatus
+    }
+
+    BOOKING_SEGMENT {
+        VARCHAR30  bookingSegmentID    PK
+        VARCHAR30  bookingID           FK
+        VARCHAR30  routeID             FK
+        INTEGER    sequenceNumber
+    }
+
+    %% ══════════════════════════════════════════
+    %% DOMAIN 05 — CUSTOMER & LOYALTY ENTITIES
+    %% ══════════════════════════════════════════
+
+    CUSTOMER_PROFILE {
+        VARCHAR30  customerID          PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR10  title
+        VARCHAR50  firstName
+        VARCHAR50  lastName
+        DATE       dateOfBirth
+        CHAR1      gender
+        VARCHAR3   nationality
+        VARCHAR3   countryOfResidence
+        VARCHAR255 emailAddress
+        VARCHAR20  phoneNumber
+        VARCHAR5   preferredLanguage
+        CHAR3      preferredCurrency
+        VARCHAR30  customerSegment
+        VARCHAR20  kycStatus
+        DATE       gdprConsentDate
+        CHAR1      marketingOptIn
+        VARCHAR20  status
+        TIMESTAMP  createdDateTime
+        TIMESTAMP  lastModifiedDateTime
+    }
+
+    CUSTOMER_IDENTITY_DOCUMENT {
+        VARCHAR30  documentID          PK
+        VARCHAR30  customerID          FK
+        VARCHAR20  documentType
+        VARCHAR30  documentNumber
+        VARCHAR3   issuingCountry
+        VARCHAR100 issuingAuthority
+        DATE       issueDate
+        DATE       expiryDate
+        CHAR1      primaryDocument
+        VARCHAR20  verificationStatus
+    }
+
+    CUSTOMER_ADDRESS {
+        VARCHAR30  addressID           PK
+        VARCHAR30  customerID          FK
+        VARCHAR20  addressType
+        VARCHAR100 addressLine1
+        VARCHAR100 addressLine2
+        VARCHAR50  city
+        VARCHAR50  stateProvince
+        VARCHAR20  postalCode
+        VARCHAR3   country
+        CHAR1      primaryAddress
+        DATE       effectiveDate
+        DATE       expiryDate
+    }
+
+    CUSTOMER_PREFERENCE {
+        VARCHAR30  preferenceID        PK
+        VARCHAR30  customerID          FK
+        VARCHAR30  preferenceCategory
+        VARCHAR10  preferenceCode
+        VARCHAR100 preferenceValue
+        VARCHAR20  preferenceSource
+        DECIMAL4_3 confidenceScore
+        DATE       effectiveDate
+        DATE       expiryDate
+    }
+
+    LOYALTY_ACCOUNT {
+        VARCHAR30  loyaltyAccountID    PK
+        VARCHAR30  customerID          FK
+        VARCHAR30  loyaltyProgrammeID  FK
+        VARCHAR30  loyaltyTierID       FK
+        VARCHAR20  membershipNumber
+        DATE       enrollmentDate
+        DATE       tierAchievedDate
+        DATE       tierReviewDate
+        INTEGER    lifetimeMiles
+        INTEGER    currentMilesBalance
+        INTEGER    qualifyingMilesYTD
+        INTEGER    qualifyingSegmentsYTD
+        VARCHAR20  accountStatus
+        VARCHAR255 pinHash
+    }
+
+    TIER_QUALIFICATION {
+        VARCHAR30  tierQualificationID   PK
+        VARCHAR30  loyaltyAccountID      FK
+        VARCHAR30  loyaltyProgrammeID    FK
+        VARCHAR30  loyaltyTierID         FK
+        VARCHAR30  fareFamilyID          FK
+        DATE       qualificationPeriodStart
+        DATE       qualificationPeriodEnd
+        INTEGER    milesAtPeriodStart
+        INTEGER    milesAtPeriodEnd
+        INTEGER    segmentsAtPeriodStart
+        INTEGER    segmentsAtPeriodEnd
+        VARCHAR20  qualificationResult
+        TIMESTAMP  processedDateTime
+    }
+
+    MILES_TRANSACTION {
+        VARCHAR30  milesTransactionID   PK
+        VARCHAR30  loyaltyAccountID     FK
+        VARCHAR3   airlineCode          FK
+        VARCHAR30  bookingID            FK
+        VARCHAR30  ticketID             FK
+        VARCHAR30  bookingSegmentID     FK
+        VARCHAR20  transactionType
+        VARCHAR30  transactionSource
+        INTEGER    milesAmount
+        INTEGER    qualifyingMiles
+        INTEGER    bonusMiles
+        TIMESTAMP  transactionDateTime
+        DATE       expiryDate
+        VARCHAR20  transactionStatus
+        VARCHAR50  referenceCode
+    }
+
+    PARTNER_MILES_TRANSACTION {
+        VARCHAR30   partnerTransactionID  PK
+        VARCHAR30   loyaltyAccountID      FK
+        VARCHAR30   ffpPartnerID          FK
+        VARCHAR50   partnerTransactionRef
+        VARCHAR30   partnerActivityType
+        VARCHAR100  partnerName
+        DATE        activityDate
+        DECIMAL12_2 activityValue
+        CHAR3       currency
+        INTEGER     milesAwarded
+        VARCHAR20   processingStatus
+        TIMESTAMP   processedDateTime
+    }
+
+    CUSTOMER_BENEFIT_REDEMPTION {
+        VARCHAR30  benefitRedemptionID  PK
+        VARCHAR30  loyaltyAccountID     FK
+        VARCHAR30  benefitID            FK
+        TIMESTAMP  redemptionDateTime
+        VARCHAR30  redemptionChannel
+        VARCHAR100 redemptionLocation
+        VARCHAR20  redemptionStatus
+        INTEGER    unitsRedeemed
+        VARCHAR255 notes
+    }
+
+    CUSTOMER_OFFER_ELIGIBILITY {
+        VARCHAR30  offerEligibilityID   PK
+        VARCHAR30  customerID           FK
+        VARCHAR30  offerID              FK
+        VARCHAR30  eligibilitySource
+        DECIMAL5_4 eligibilityScore
+        VARCHAR20  eligibilityStatus
+        TIMESTAMP  assignedDateTime
+        TIMESTAMP  expiryDateTime
+        INTEGER    redemptionCount
+        INTEGER    maxRedemptions
+    }
+
+    %% ══════════════════════════════════════════
+    %% RELATIONSHIPS — Internal Customer & Loyalty
+    %% ══════════════════════════════════════════
+
+    CUSTOMER_PROFILE     ||--|{ CUSTOMER_IDENTITY_DOCUMENT  : "identified by"
+    CUSTOMER_PROFILE     ||--|{ CUSTOMER_ADDRESS             : "located at"
+    CUSTOMER_PROFILE     ||--o{ CUSTOMER_PREFERENCE         : "has preference"
+    CUSTOMER_PROFILE     ||--o{ LOYALTY_ACCOUNT             : "holds"
+    CUSTOMER_PROFILE     ||--o{ CUSTOMER_OFFER_ELIGIBILITY  : "eligible for"
+    LOYALTY_ACCOUNT      ||--o{ TIER_QUALIFICATION          : "tracked by"
+    LOYALTY_ACCOUNT      ||--o{ MILES_TRANSACTION           : "accrues"
+    LOYALTY_ACCOUNT      ||--o{ PARTNER_MILES_TRANSACTION   : "earns via partner"
+    LOYALTY_ACCOUNT      ||--o{ CUSTOMER_BENEFIT_REDEMPTION : "redeems"
+
+    %% ══════════════════════════════════════════
+    %% RELATIONSHIPS — Cross-Domain
+    %% ══════════════════════════════════════════
+
+    AIRLINE              ||--o{ CUSTOMER_PROFILE            : "owns relationship"
+    AIRLINE              ||--o{ MILES_TRANSACTION           : "credits"
+    LOYALTY_PROGRAMME    ||--o{ LOYALTY_ACCOUNT             : "enrolled in"
+    LOYALTY_PROGRAMME    ||--o{ TIER_QUALIFICATION          : "governs"
+    LOYALTY_TIER         ||--o{ LOYALTY_ACCOUNT             : "assigned to"
+    LOYALTY_TIER         ||--o{ TIER_QUALIFICATION          : "targets"
+    LOYALTY_TIER_BENEFIT ||--o{ CUSTOMER_BENEFIT_REDEMPTION : "redeemed as"
+    FREQUENT_FLYER_PARTNER ||--o{ PARTNER_MILES_TRANSACTION : "transacted via"
+    OFFER                ||--o{ CUSTOMER_OFFER_ELIGIBILITY  : "targeted by"
+    FARE_FAMILY          ||--o{ TIER_QUALIFICATION          : "qualifies under"
+    BOOKING              ||--o{ MILES_TRANSACTION           : "triggers"
+    TICKET               ||--o{ MILES_TRANSACTION           : "evidenced by"
+    BOOKING_SEGMENT      ||--o{ MILES_TRANSACTION           : "generates"

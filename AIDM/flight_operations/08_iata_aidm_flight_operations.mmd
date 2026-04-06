@@ -1,0 +1,259 @@
+---
+title: IATA AIDM 25.1 — Flight Operations
+---
+erDiagram
+
+    %% ══════════════════════════════════════════
+    %% UPSTREAM DOMAIN ENTITIES (FK references)
+    %% ══════════════════════════════════════════
+
+    AIRLINE {
+        VARCHAR3   airlineCode         PK
+        VARCHAR100 airlineName
+    }
+
+    ROUTE {
+        VARCHAR30  routeID             PK
+        VARCHAR3   originAirportCode   FK
+        VARCHAR3   destinationAirportCode FK
+        VARCHAR20  routeStatus
+    }
+
+    AIRPORT_SLOT {
+        VARCHAR30  slotID              PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR3   airportCode
+        VARCHAR10  slotType
+        TIMESTAMP  scheduledDateTime
+        VARCHAR20  slotStatus
+    }
+
+    FLIGHT_TURNAROUND {
+        VARCHAR30  turnaroundID        PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR3   airportCode
+        VARCHAR20  turnaroundStatus
+        INTEGER    delayMinutes
+    }
+
+    INVENTORY_CLASS {
+        VARCHAR30  inventoryClassID    PK
+        VARCHAR3   airlineCode         FK
+        INTEGER    authorisedCapacity
+        INTEGER    bookedCount
+        VARCHAR10  classStatus
+    }
+
+    %% ══════════════════════════════════════════
+    %% DOMAIN 08 — FLIGHT OPERATIONS ENTITIES
+    %% ══════════════════════════════════════════
+
+    AIRCRAFT {
+        VARCHAR30   aircraftID              PK
+        VARCHAR3    airlineCode             FK
+        VARCHAR10   registration
+        VARCHAR10   aircraftTypeCode
+        VARCHAR4    icaoTypeCode
+        VARCHAR50   manufacturer
+        VARCHAR30   modelSeries
+        VARCHAR50   engineType
+        INTEGER     engineCount
+        DECIMAL10_2 maxTakeoffWeightKg
+        DECIMAL10_2 operatingEmptyWeightKg
+        DECIMAL10_2 maxFuelCapacityLitres
+        INTEGER     maxRangeKm
+        DATE        deliveryDate
+        DECIMAL5_2  aircraftAge
+        VARCHAR20   ownershipType
+        VARCHAR100  lessorName
+        VARCHAR20   status
+        VARCHAR3    baseAirportCode
+    }
+
+    AIRCRAFT_UTILISATION {
+        VARCHAR30  utilisationID        PK
+        VARCHAR30  aircraftID           FK
+        DATE       recordDate
+        DECIMAL10_2 totalFlightHours
+        INTEGER    totalCycles
+        DECIMAL8_2 flightHoursThisMonth
+        INTEGER    cyclesThisMonth
+        DECIMAL5_2 dailyUtilisationHours
+        DECIMAL10_2 blockHoursYTD
+        TIMESTAMP  lastUpdatedDateTime
+    }
+
+    CREW_MEMBER {
+        VARCHAR30  crewMemberID         PK
+        VARCHAR3   airlineCode          FK
+        VARCHAR20  employeeID
+        VARCHAR50  firstName
+        VARCHAR50  lastName
+        VARCHAR20  crewType
+        VARCHAR30  crewRank
+        VARCHAR3   baseAirportCode
+        VARCHAR30  licenceNumber
+        VARCHAR10  licenceIssuingAuthority
+        DATE       licenceExpiryDate
+        DATE       medicalCertExpiry
+        VARCHAR3   nationality
+        VARCHAR20  status
+        DATE       hireDate
+    }
+
+    CREW_QUALIFICATION {
+        VARCHAR30  qualificationID      PK
+        VARCHAR30  crewMemberID         FK
+        VARCHAR30  qualificationType
+        VARCHAR10  aircraftTypeCode
+        VARCHAR10  issuingAuthority
+        DATE       issueDate
+        DATE       expiryDate
+        VARCHAR20  qualificationStatus
+        DATE       lastProficiencyCheckDate
+        DATE       nextProficiencyCheckDate
+    }
+
+    FLIGHT {
+        VARCHAR30  flightID             PK
+        VARCHAR3   airlineCode          FK
+        VARCHAR30  routeID              FK
+        VARCHAR30  slotID               FK
+        VARCHAR30  turnaroundID         FK
+        VARCHAR30  inventoryClassID     FK
+        VARCHAR30  aircraftID           FK
+        VARCHAR10  flightNumber
+        VARCHAR3   operatingCarrierCode
+        VARCHAR3   marketingCarrierCode
+        VARCHAR3   originAirportCode
+        VARCHAR3   destinationAirportCode
+        TIMESTAMP  scheduledDepartureDateTime
+        TIMESTAMP  scheduledArrivalDateTime
+        TIMESTAMP  estimatedDepartureDateTime
+        TIMESTAMP  estimatedArrivalDateTime
+        TIMESTAMP  actualDepartureDateTime
+        TIMESTAMP  actualArrivalDateTime
+        VARCHAR20  flightStatus
+        CHAR1      codeShareFlight
+        VARCHAR5   flightRules
+        VARCHAR10  flightType
+        INTEGER    totalPaxBoarded
+        DECIMAL8_2 totalBaggageKg
+        DECIMAL8_2 totalCargoKg
+    }
+
+    OPERATIONAL_FLIGHT_PLAN {
+        VARCHAR30   ofpID               PK
+        VARCHAR30   flightID            FK
+        VARCHAR3    airlineCode         FK
+        VARCHAR50   planningSystem
+        INTEGER     ofpVersion
+        TEXT        filedRoute
+        INTEGER     plannedAltitudeFt
+        INTEGER     plannedTASKts
+        INTEGER     plannedFlightTimeMins
+        DECIMAL8_2  tripFuelKg
+        DECIMAL8_2  contingencyFuelKg
+        DECIMAL8_2  alternateFuelKg
+        DECIMAL8_2  finalReserveFuelKg
+        DECIMAL8_2  additionalFuelKg
+        DECIMAL8_2  totalFuelOnBoardKg
+        DECIMAL10_2 takeoffWeightKg
+        DECIMAL10_2 landingWeightKg
+        VARCHAR3    alternateAirportCode
+        TIMESTAMP   atsFiledDateTime
+        VARCHAR20   ofpStatus
+    }
+
+    CREW_ASSIGNMENT {
+        VARCHAR30  crewAssignmentID     PK
+        VARCHAR30  flightID             FK
+        VARCHAR30  crewMemberID         FK
+        VARCHAR30  crewPosition
+        VARCHAR20  assignmentType
+        TIMESTAMP  dutyStartDateTime
+        TIMESTAMP  dutyEndDateTime
+        INTEGER    flightDutyPeriodMins
+        INTEGER    restPeriodBeforeMins
+        VARCHAR20  assignmentStatus
+        INTEGER    fdpLimitMins
+        DECIMAL6_2 cumulativeFlightHrs28Day
+        DECIMAL7_2 cumulativeFlightHrsYear
+    }
+
+    FLIGHT_OOOI_EVENT {
+        VARCHAR30  oooi_EventID         PK
+        VARCHAR30  flightID             FK
+        VARCHAR5   eventType
+        TIMESTAMP  eventDateTime
+        VARCHAR3   airportCode
+        DECIMAL8_2 fuelOnBoardKg
+        VARCHAR30  acarsMessageID
+        VARCHAR20  transmissionSource
+        DECIMAL9_6 latitude
+        DECIMAL9_6 longitude
+    }
+
+    FLIGHT_DISRUPTION {
+        VARCHAR30  disruptionID         PK
+        VARCHAR30  flightID             FK
+        VARCHAR30  recoveryFlightID     FK
+        VARCHAR20  disruptionType
+        VARCHAR30  disruptionCause
+        VARCHAR5   primaryDelayCode
+        VARCHAR5   secondaryDelayCode
+        INTEGER    delayMinutes
+        VARCHAR3   diversionAirportCode
+        TIMESTAMP  cancellationDateTime
+        VARCHAR255 disruptionDescription
+        INTEGER    passengerImpactCount
+        TIMESTAMP  reportedDateTime
+        TIMESTAMP  resolvedDateTime
+    }
+
+    WEIGHT_AND_BALANCE {
+        VARCHAR30   wbRecordID          PK
+        VARCHAR30   flightID            FK
+        VARCHAR30   aircraftID          FK
+        VARCHAR30   preparedByCrewID    FK
+        DECIMAL10_2 dryOperatingWeightKg
+        DECIMAL10_2 passengerWeightKg
+        DECIMAL10_2 baggageWeightKg
+        DECIMAL10_2 cargoWeightKg
+        DECIMAL10_2 fuelWeightKg
+        DECIMAL10_2 actualTakeoffWeightKg
+        DECIMAL10_2 actualLandingWeightKg
+        DECIMAL10_2 maximumTakeoffWeightKg
+        DECIMAL10_2 maximumLandingWeightKg
+        DECIMAL5_2  centreOfGravityPct
+        CHAR1       cgWithinLimits
+        TIMESTAMP   preparedDateTime
+    }
+
+    %% ══════════════════════════════════════════
+    %% RELATIONSHIPS — Internal Flight Operations
+    %% ══════════════════════════════════════════
+
+    AIRCRAFT             ||--o{ AIRCRAFT_UTILISATION    : "tracked by"
+    AIRCRAFT             ||--o{ FLIGHT                  : "operates"
+    CREW_MEMBER          ||--|{ CREW_QUALIFICATION      : "holds"
+    CREW_MEMBER          ||--o{ CREW_ASSIGNMENT         : "assigned via"
+    FLIGHT               ||--|{ OPERATIONAL_FLIGHT_PLAN : "planned by"
+    FLIGHT               ||--|{ CREW_ASSIGNMENT         : "crewed by"
+    FLIGHT               ||--o{ FLIGHT_OOOI_EVENT       : "tracked via"
+    FLIGHT               ||--o{ FLIGHT_DISRUPTION       : "disrupted by"
+    FLIGHT               ||--o| WEIGHT_AND_BALANCE      : "balanced by"
+    FLIGHT               ||--o{ FLIGHT_DISRUPTION       : "recovered by"
+    WEIGHT_AND_BALANCE   ||--o| CREW_MEMBER             : "prepared by"
+
+    %% ══════════════════════════════════════════
+    %% RELATIONSHIPS — Cross-Domain
+    %% ══════════════════════════════════════════
+
+    AIRLINE              ||--o{ AIRCRAFT                : "operates"
+    AIRLINE              ||--o{ CREW_MEMBER             : "employs"
+    AIRLINE              ||--o{ FLIGHT                  : "schedules"
+    ROUTE                ||--o{ FLIGHT                  : "operated on"
+    AIRPORT_SLOT         ||--o{ FLIGHT                  : "allocated to"
+    FLIGHT_TURNAROUND    ||--o{ FLIGHT                  : "supports"
+    INVENTORY_CLASS      ||--o{ FLIGHT                  : "inventoried for"

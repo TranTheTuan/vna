@@ -1,0 +1,141 @@
+---
+title: IATA AIDM 25.1 — Network & Alliances
+---
+erDiagram
+
+    AIRLINE {
+        VARCHAR3   airlineCode         PK
+        VARCHAR100 airlineName
+        VARCHAR2   IATA_code
+        VARCHAR3   ICAO_code
+        VARCHAR3   country
+        VARCHAR3   homeBase            FK
+        BOOLEAN    allianceMember
+    }
+
+    ALLIANCE {
+        VARCHAR10  allianceCode        PK
+        VARCHAR100 allianceName
+        DATE       foundedDate
+        VARCHAR100 headquarters
+        VARCHAR255 websiteURL
+    }
+
+    ALLIANCE_MEMBERSHIP {
+        VARCHAR20  membershipID        PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR10  allianceCode        FK
+        VARCHAR20  membershipType
+        DATE       joinDate
+        VARCHAR20  status
+    }
+
+    CODESHARE_AGREEMENT {
+        VARCHAR30  codeshareAgreementID   PK
+        VARCHAR3   operatingCarrierCode   FK
+        VARCHAR3   marketingCarrierCode   FK
+        VARCHAR20  agreementType
+        DATE       effectiveDate
+        DATE       discontinuationDate
+        VARCHAR20  status
+        VARCHAR50  approvalAuthority
+        INTEGER    blockedSeats
+    }
+
+    CODESHARE_FLIGHT {
+        VARCHAR30  codeshareFlightID      PK
+        VARCHAR30  codeshareAgreementID   FK
+        VARCHAR10  operatingFlightNumber  FK
+        VARCHAR10  marketingFlightNumber
+        VARCHAR3   marketingCarrierCode   FK
+        VARCHAR3   origin
+        VARCHAR3   destination
+        DATE       effectiveDate
+        DATE       discontinuationDate
+        TEXT       cabinClassMapping
+    }
+
+    INTERLINE_AGREEMENT {
+        VARCHAR30  interlineAgreementID   PK
+        VARCHAR3   airline1Code           FK
+        VARCHAR3   airline2Code           FK
+        VARCHAR20  agreementScope
+        DATE       effectiveDate
+        DATE       expiryDate
+        VARCHAR20  status
+        CHAR1      autoTicketing
+        CHAR1      selfConnect
+    }
+
+    PRORATE_AGREEMENT {
+        VARCHAR30  prorateAgreementID     PK
+        VARCHAR30  interlineAgreementID   FK
+        VARCHAR3   airline1Code           FK
+        VARCHAR3   airline2Code           FK
+        VARCHAR20  prorateType
+        CHAR3      currency
+        DATE       effectiveDate
+        DATE       expiryDate
+        VARCHAR50  rulesetReference
+    }
+
+    SPECIAL_PRORATE_AGREEMENT {
+        VARCHAR30   spaID                 PK
+        VARCHAR30   prorateAgreementID    FK
+        VARCHAR3    origin
+        VARCHAR3    destination
+        VARCHAR50   carrierSequence
+        VARCHAR5    fareClass
+        DECIMAL10_2 prorateAmount
+        CHAR3       currency
+        VARCHAR30   calculationMethod
+        DATE        effectiveDate
+        DATE        expiryDate
+    }
+
+    ROUTE_NETWORK {
+        VARCHAR30  routeNetworkID         PK
+        VARCHAR3   airlineCode            FK
+        VARCHAR20  routeType
+        VARCHAR3   hubAirport
+        INTEGER    version
+        VARCHAR5   seasonCode
+    }
+
+    ROUTE {
+        VARCHAR30  routeID                PK
+        VARCHAR30  routeNetworkID         FK
+        VARCHAR3   originAirportCode      FK
+        VARCHAR3   destinationAirportCode FK
+        DECIMAL8_2 distance
+        VARCHAR10  distanceType
+        VARCHAR20  routeStatus
+        VARCHAR15  onlineStatus
+    }
+
+    FREQUENT_FLYER_PARTNER {
+        VARCHAR30  ffpPartnerID           PK
+        VARCHAR3   sponsorAirlineCode     FK
+        VARCHAR3   partnerAirlineCode     FK
+        VARCHAR100 programName
+        CHAR1      earnEnabled
+        CHAR1      redeemEnabled
+        CHAR1      statusRecognition
+        DECIMAL6_4 conversionRate
+        DATE       effectiveDate
+        DATE       expiryDate
+    }
+
+    %% ── Relationships ──
+
+    AIRLINE                 ||--o{ ALLIANCE_MEMBERSHIP       : "joins"
+    ALLIANCE                ||--o{ ALLIANCE_MEMBERSHIP       : "has member"
+    AIRLINE                 ||--o{ CODESHARE_AGREEMENT       : "operates"
+    AIRLINE                 ||--o{ CODESHARE_AGREEMENT       : "markets"
+    CODESHARE_AGREEMENT     ||--|{ CODESHARE_FLIGHT          : "covers"
+    AIRLINE                 ||--o{ INTERLINE_AGREEMENT       : "party to"
+    INTERLINE_AGREEMENT     ||--o{ PRORATE_AGREEMENT         : "settled by"
+    PRORATE_AGREEMENT       ||--o{ SPECIAL_PRORATE_AGREEMENT : "overridden by"
+    AIRLINE                 ||--|{ ROUTE_NETWORK             : "owns"
+    ROUTE_NETWORK           ||--|{ ROUTE                     : "contains"
+    AIRLINE                 ||--o{ FREQUENT_FLYER_PARTNER    : "sponsors"

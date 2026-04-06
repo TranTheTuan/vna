@@ -1,0 +1,275 @@
+---
+title: IATA AIDM 25.1 — Safety & Compliance
+---
+erDiagram
+
+    %% ══════════════════════════════════════════
+    %% UPSTREAM DOMAIN ENTITIES (FK references)
+    %% ══════════════════════════════════════════
+
+    AIRLINE {
+        VARCHAR3   airlineCode         PK
+        VARCHAR100 airlineName
+    }
+
+    AIRCRAFT {
+        VARCHAR30  aircraftID          PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR10  registration
+        VARCHAR10  aircraftTypeCode
+        VARCHAR20  status
+    }
+
+    FLIGHT {
+        VARCHAR30  flightID            PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR10  flightNumber
+        TIMESTAMP  scheduledDepartureDateTime
+        VARCHAR20  flightStatus
+    }
+
+    CREW_MEMBER {
+        VARCHAR30  crewMemberID        PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR50  firstName
+        VARCHAR50  lastName
+        VARCHAR20  crewType
+        VARCHAR30  crewRank
+    }
+
+    DEFECT_RECORD {
+        VARCHAR30  defectID            PK
+        VARCHAR30  aircraftID          FK
+        VARCHAR20  defectCategory
+        VARCHAR20  defectStatus
+        CHAR1      airworthyStatus
+    }
+
+    WORK_ORDER {
+        VARCHAR30  workOrderID         PK
+        VARCHAR30  aircraftID          FK
+        VARCHAR20  workOrderType
+        VARCHAR20  workOrderStatus
+    }
+
+    GROUND_HANDLER {
+        VARCHAR30  groundHandlerID     PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR100 handlerName
+        VARCHAR3   airportCode
+    }
+
+    AMO {
+        VARCHAR30  amoID               PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR100 amoName
+        VARCHAR30  approvalNumber
+        VARCHAR20  status
+    }
+
+    %% ══════════════════════════════════════════
+    %% DOMAIN 12 — SAFETY & COMPLIANCE ENTITIES
+    %% ══════════════════════════════════════════
+
+    SMS_PROGRAMME {
+        VARCHAR30  smsProgrammeID      PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR100 programmeName
+        VARCHAR10  programmeVersion
+        CHAR1      icaoAnnex19Compliant
+        VARCHAR10  approvalAuthority
+        VARCHAR50  approvalReference
+        DATE       approvalDate
+        VARCHAR100 accountableManager
+        VARCHAR100 safetyOfficerName
+        DATE       lastReviewDate
+        DATE       nextReviewDate
+        VARCHAR20  status
+    }
+
+    HAZARD_REGISTER {
+        VARCHAR30  hazardID            PK
+        VARCHAR30  smsProgrammeID      FK
+        VARCHAR100 hazardTitle
+        VARCHAR500 hazardDescription
+        VARCHAR30  hazardCategory
+        VARCHAR30  operationalArea
+        INTEGER    inherentLikelihood
+        INTEGER    inherentSeverity
+        INTEGER    inherentRiskScore
+        INTEGER    residualLikelihood
+        INTEGER    residualSeverity
+        INTEGER    residualRiskScore
+        VARCHAR20  riskAcceptanceStatus
+        VARCHAR500 controlMeasures
+        VARCHAR50  hazardOwner
+        DATE       reviewDate
+        VARCHAR20  status
+    }
+
+    SAFETY_OCCURRENCE {
+        VARCHAR30  occurrenceID        PK
+        VARCHAR30  smsProgrammeID      FK
+        VARCHAR3   airlineCode         FK
+        VARCHAR30  aircraftID          FK
+        VARCHAR30  flightID            FK
+        VARCHAR30  crewMemberID        FK
+        VARCHAR30  defectID            FK
+        VARCHAR30  workOrderID         FK
+        VARCHAR20  occurrenceType
+        VARCHAR30  occurrenceCategory
+        TIMESTAMP  occurrenceDateTime
+        VARCHAR3   airportCode
+        VARCHAR20  flightPhase
+        VARCHAR1000 occurrenceDescription
+        INTEGER    injuriesCount
+        INTEGER    fatalitiesCount
+        VARCHAR20  aircraftDamage
+        CHAR1      reportedToAuthority
+        VARCHAR50  authorityReference
+        VARCHAR20  reportingSystem
+        CHAR1      safetyInvestigationRequired
+        VARCHAR20  occurrenceStatus
+    }
+
+    SAFETY_INVESTIGATION {
+        VARCHAR30  investigationID     PK
+        VARCHAR30  occurrenceID        FK
+        VARCHAR100 investigationLeadName
+        VARCHAR255 investigationTeam
+        DATE       investigationStartDate
+        DATE       targetCloseDate
+        DATE       actualCloseDate
+        VARCHAR500 rootCauses
+        VARCHAR500 contributingFactors
+        VARCHAR500 immediateActions
+        VARCHAR500 safetyRecommendations
+        VARCHAR20  investigationStatus
+        VARCHAR50  finalReportReference
+    }
+
+    CORRECTIVE_ACTION {
+        VARCHAR30  correctiveActionID  PK
+        VARCHAR30  investigationID     FK
+        VARCHAR30  auditFindingID      FK
+        VARCHAR100 actionTitle
+        VARCHAR500 actionDescription
+        VARCHAR20  actionType
+        VARCHAR100 responsibleParty
+        DATE       targetCompletionDate
+        DATE       actualCompletionDate
+        VARCHAR100 evidenceReference
+        VARCHAR20  actionStatus
+        VARCHAR50  verifiedBy
+        DATE       verifiedDate
+    }
+
+    AUDIT {
+        VARCHAR30  auditID             PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR30  groundHandlerID     FK
+        VARCHAR30  amoID               FK
+        VARCHAR20  auditType
+        VARCHAR30  auditArea
+        VARCHAR100 auditorName
+        VARCHAR100 auditOrganisation
+        DATE       auditStartDate
+        DATE       auditEndDate
+        VARCHAR50  auditLocation
+        VARCHAR20  overallRating
+        INTEGER    findingsCount
+        VARCHAR20  auditStatus
+        CHAR1      certificateIssued
+        DATE       certificateExpiryDate
+    }
+
+    AUDIT_FINDING {
+        VARCHAR30  auditFindingID      PK
+        VARCHAR30  auditID             FK
+        VARCHAR20  findingNumber
+        VARCHAR20  findingType
+        VARCHAR10  findingSeverity
+        VARCHAR20  iosaStandardRef
+        VARCHAR500 findingDescription
+        VARCHAR255 standardRequirement
+        VARCHAR500 objectiveEvidence
+        VARCHAR255 rootCause
+        VARCHAR20  findingStatus
+        DATE       targetCloseDate
+        DATE       actualCloseDate
+    }
+
+    REGULATORY_REQUIREMENT {
+        VARCHAR30  regulatoryReqID     PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR50  regulationReference
+        VARCHAR255 regulationTitle
+        VARCHAR10  regulatoryAuthority
+        VARCHAR30  applicableArea
+        VARCHAR20  complianceStatus
+        VARCHAR255 complianceEvidence
+        DATE       lastAssessmentDate
+        DATE       nextAssessmentDate
+        VARCHAR50  responsibleDepartment
+        VARCHAR255 notes
+    }
+
+    FATIGUE_RISK_RECORD {
+        VARCHAR30  fatigueRiskID       PK
+        VARCHAR30  crewMemberID        FK
+        DATE       recordDate
+        INTEGER    reportedFatigueLevel
+        VARCHAR20  fatigueSource
+        INTEGER    dutyPeriodMins
+        DECIMAL4_1 sleepHoursLast24
+        DECIMAL4_1 sleepHoursLast48
+        DECIMAL5_2 biomathModelScore
+        VARCHAR30  biomathModelUsed
+        CHAR1      frmsAlertTriggered
+        VARCHAR255 actionTaken
+        TIMESTAMP  reportedDateTime
+    }
+
+    EMERGENCY_RESPONSE_PLAN {
+        VARCHAR30  erpID               PK
+        VARCHAR3   airlineCode         FK
+        VARCHAR100 planName
+        VARCHAR30  emergencyType
+        VARCHAR10  planVersion
+        DATE       approvalDate
+        DATE       lastExerciseDate
+        DATE       nextExerciseDate
+        VARCHAR100 planOwner
+        CHAR1      icaoAnnex13Compliant
+        VARCHAR50  regulatoryApprovalRef
+        VARCHAR20  planStatus
+    }
+
+    %% ══════════════════════════════════════════
+    %% RELATIONSHIPS — Internal Safety Domain
+    %% ══════════════════════════════════════════
+
+    SMS_PROGRAMME        ||--o{ HAZARD_REGISTER           : "manages"
+    SMS_PROGRAMME        ||--o{ SAFETY_OCCURRENCE         : "captures"
+    SAFETY_OCCURRENCE    ||--o| SAFETY_INVESTIGATION      : "triggers"
+    SAFETY_INVESTIGATION ||--o{ CORRECTIVE_ACTION         : "produces"
+    AUDIT                ||--o{ AUDIT_FINDING             : "raises"
+    AUDIT_FINDING        ||--o{ CORRECTIVE_ACTION         : "requires"
+
+    %% ══════════════════════════════════════════
+    %% RELATIONSHIPS — Cross-Domain
+    %% ══════════════════════════════════════════
+
+    AIRLINE              ||--o{ SMS_PROGRAMME             : "operates"
+    AIRLINE              ||--o{ AUDIT                     : "subject to"
+    AIRLINE              ||--o{ REGULATORY_REQUIREMENT    : "complies with"
+    AIRLINE              ||--o{ EMERGENCY_RESPONSE_PLAN   : "maintains"
+    AIRLINE              ||--o{ SAFETY_OCCURRENCE         : "reports"
+    AIRCRAFT             ||--o{ SAFETY_OCCURRENCE         : "involved in"
+    FLIGHT               ||--o{ SAFETY_OCCURRENCE         : "generates"
+    CREW_MEMBER          ||--o{ SAFETY_OCCURRENCE         : "reports"
+    CREW_MEMBER          ||--o{ FATIGUE_RISK_RECORD       : "monitored by"
+    DEFECT_RECORD        ||--o{ SAFETY_OCCURRENCE         : "linked to"
+    WORK_ORDER           ||--o{ SAFETY_OCCURRENCE         : "associated with"
+    GROUND_HANDLER       ||--o{ AUDIT                     : "audited by"
+    AMO                  ||--o{ AUDIT                     : "audited by"

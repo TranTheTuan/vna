@@ -13,13 +13,17 @@ docs:
 	swag init -g cmd/api/main.go -o internal/docs
 
 migrate:
-	export $(shell cat .env) && \
-		migrate -path internal/migrations -database postgres://$$POSTGRES_USER:$$POSTGRES_PASSWORD@$$POSTGRES_HOST:$$POSTGRES_PORT/$$POSTGRES_DB?sslmode=disable up
+	export $(shell grep -v '^#' .env | xargs) && \
+		migrate -path internal/migrations -database "postgres://$$DATABASE_USER:$$DATABASE_PASSWORD@$$DATABASE_HOST:$$DATABASE_PORT/$$DATABASE_DBNAME?sslmode=disable" up
+
+migrate-dev:
+	export $(shell grep -v '^#' .env.dev | xargs) && \
+		migrate -path internal/migrations -database "postgres://$$DATABASE_USER:$$DATABASE_PASSWORD@$$DATABASE_HOST:$$DATABASE_PORT/$$DATABASE_DBNAME?sslmode=disable" up
 
 migrate-down:
-	export $(shell cat .env) && \
-		migrate -path internal/migrations -database postgres://$$POSTGRES_USER:$$POSTGRES_PASSWORD@$$POSTGRES_HOST:$$POSTGRES_PORT/$$POSTGRES_DB?sslmode=disable down $(NUM)
+	export $(shell grep -v '^#' .env | xargs) && \
+		migrate -path internal/migrations -database "postgres://$$DATABASE_USER:$$DATABASE_PASSWORD@$$DATABASE_HOST:$$DATABASE_PORT/$$DATABASE_DBNAME?sslmode=disable" down $(NUM)
 
 migrate-force:
-	export $(shell cat .env) && \
-		migrate -path internal/migrations -database postgres://$$POSTGRES_USER:$$POSTGRES_PASSWORD@$$POSTGRES_HOST:$$POSTGRES_PORT/$$POSTGRES_DB?sslmode=disable force $(VER)
+	export $(shell grep -v '^#' .env | xargs) && \
+		migrate -path internal/migrations -database "postgres://$$DATABASE_USER:$$DATABASE_PASSWORD@$$DATABASE_HOST:$$DATABASE_PORT/$$DATABASE_DBNAME?sslmode=disable" force $(VER)

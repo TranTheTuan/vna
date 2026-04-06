@@ -34,6 +34,7 @@ type MessageService interface {
 type openResponsesRequest struct {
 	Model  string `json:"model"`
 	Stream bool   `json:"stream"`
+	User   string `json:"user"`
 	Input  string `json:"input"`
 }
 
@@ -77,7 +78,7 @@ func (s *messageService) Send(ctx context.Context, userID, question string) (*do
 		return nil, ErrEmptyMessage
 	}
 
-	answer, err := s.callOpenResponses(ctx, question)
+	answer, err := s.callOpenResponses(ctx, userID, question)
 	if err != nil {
 		s.logger.Error("OpenResponses call failed", "error", err, "userID", userID)
 		return nil, err
@@ -108,10 +109,11 @@ func (s *messageService) List(ctx context.Context, userID string, limit int, cur
 }
 
 // callOpenResponses sends a POST /v1/responses request and extracts the answer text.
-func (s *messageService) callOpenResponses(ctx context.Context, question string) (string, error) {
+func (s *messageService) callOpenResponses(ctx context.Context, userID, question string) (string, error) {
 	payload := openResponsesRequest{
 		Model:  s.cfg.ChatServer.Model,
 		Stream: false,
+		User:   userID,
 		Input:  question,
 	}
 
