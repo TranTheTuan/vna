@@ -62,6 +62,11 @@ func main() {
 	e.HideBanner = true
 	e.Use(middleware.RequestLogger())
 	e.Use(middleware.Recover())
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"http://localhost:3000", "https://sota-claw.com"},
+		AllowMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders: []string{"Content-Type", "Authorization"},
+	}))
 
 	// Swagger UI — only enabled when SWAGGER_ENABLED=true
 	if cfg.SwaggerEnabled {
