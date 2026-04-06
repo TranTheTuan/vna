@@ -331,6 +331,44 @@ paths:
       summary: Send a chat message
       tags:
       - messages
+  /api/v1/messages/stream:
+    post:
+      consumes:
+      - application/json
+      description: 'Sends a message to the AI and streams the response via SSE. Each
+        delta chunk is sent as "event: delta". The final saved message is sent as
+        "event: done". Requires a valid Bearer access token.'
+      parameters:
+      - description: Message request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SendMessageRequest'
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: SSE stream of delta and done events
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Stream a chat message
+      tags:
+      - messages
 securityDefinitions:
   BearerAuth:
     description: 'Enter: Bearer {token}'

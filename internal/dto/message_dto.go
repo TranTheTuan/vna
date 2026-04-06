@@ -20,3 +20,8 @@ type ListResponse struct {
 	Data       []*MessageResponse `json:"data"`
 	NextCursor string             `json:"next_cursor"` // empty string when no more pages
 }
+
+// StreamDeltaEvent is emitted as SSE "delta" events during POST /api/v1/messages/stream.
+type StreamDeltaEvent struct {
+	Delta string `json:"delta"`
+}
