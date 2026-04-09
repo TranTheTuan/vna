@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -120,16 +122,51 @@ func (h *MessageHandler) SendStream(c echo.Context) error {
 
 	w := c.Response().Writer
 
+	// mu serializes all SSE writes to prevent interleaved frames from
+	// concurrent goroutine (heartbeat) and onDelta callback.
+	var mu sync.Mutex
+	// lastFlush tracks the last time any event was flushed (Unix nanoseconds).
+	var lastFlush atomic.Int64
+	lastFlush.Store(time.Now().UnixNano())
+
+	// Heartbeat goroutine: emits "ping" every 15s when no delta has been flushed
+	// recently. Prevents Cloudflare 524 timeout during long upstream thinking gaps.
+	done := make(chan struct{})
+	defer close(done)
+	go func() {
+		ticker := time.NewTicker(15 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				if time.Since(time.Unix(0, lastFlush.Load())) > 14*time.Second {
+					mu.Lock()
+					writeSseEvent(w, flusher, "ping", "{}")
+					mu.Unlock()
+				}
+			case <-done:
+				return
+			}
+		}
+	}()
+
 	// onDelta flushes each incremental text chunk to the client immediately.
+	// lastFlush is updated inside the lock so the heartbeat goroutine cannot
+	// observe a stale timestamp between the write and the store.
 	onDelta := func(chunk string) {
 		data, _ := json.Marshal(dto.StreamDeltaEvent{Delta: chunk})
+		mu.Lock()
 		writeSseEvent(w, flusher, "delta", string(data))
+		lastFlush.Store(time.Now().UnixNano())
+		mu.Unlock()
 	}
 
 	msg, err := h.svc.SendStream(ctx, userID, req.Message, onDelta)
 	if err != nil {
 		errData, _ := json.Marshal(map[string]string{"message": sseErrorMessage(err)})
+		mu.Lock()
 		writeSseEvent(w, flusher, "error", string(errData))
+		mu.Unlock()
 		return nil
 	}
 
@@ -140,7 +177,9 @@ func (h *MessageHandler) SendStream(c echo.Context) error {
 		Answer:    msg.Answer,
 		CreatedAt: msg.CreatedAt,
 	})
+	mu.Lock()
 	writeSseEvent(w, flusher, "done", string(doneData))
+	mu.Unlock()
 	return nil
 }
 
