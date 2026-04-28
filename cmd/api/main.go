@@ -46,16 +46,19 @@ func main() {
 	defer pool.Close()
 
 	// Repositories
-	userRepo := repository.NewUserRepository(pool)
+	userRepo    := repository.NewUserRepository(pool)
 	messageRepo := repository.NewMessageRepository(pool)
+	threadRepo  := repository.NewThreadRepository(pool)
 
 	// Services
-	userSvc := service.NewUserService(cfg, userRepo, logger)
-	messageSvc := service.NewMessageService(cfg, messageRepo, logger)
+	userSvc    := service.NewUserService(cfg, userRepo, logger)
+	messageSvc := service.NewMessageService(cfg, messageRepo, threadRepo, logger)
+	threadSvc  := service.NewThreadService(threadRepo)
 
 	// Handlers
-	authHandler := http_handler.NewAuthHandler(userSvc)
+	authHandler    := http_handler.NewAuthHandler(userSvc)
 	messageHandler := http_handler.NewMessageHandler(messageSvc)
+	threadHandler  := http_handler.NewThreadHandler(threadSvc)
 
 	// Echo server
 	e := echo.New()
@@ -76,6 +79,7 @@ func main() {
 	apiGroup := e.Group("/api/v1")
 	http_delivery.RegisterAuthRoutes(apiGroup, authHandler, cfg)
 	http_delivery.RegisterMessageRoutes(apiGroup, messageHandler, cfg)
+	http_delivery.RegisterThreadRoutes(apiGroup, threadHandler, cfg)
 
 	// Graceful shutdown on SIGINT / SIGTERM
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

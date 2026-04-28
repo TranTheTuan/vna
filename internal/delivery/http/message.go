@@ -12,6 +12,6 @@ func RegisterMessageRoutes(e *echo.Group, mh *http_handler.MessageHandler, cfg *
 	msgs := e.Group("/messages")
 	msgs.Use(JWTMiddleware(cfg))
 	msgs.POST("", mh.Send)
-	msgs.GET("", mh.List)
+	msgs.GET("", mh.ListByThread)
 	msgs.POST("/stream", mh.SendStream)
 }

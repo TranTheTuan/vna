@@ -1,0 +1,2 @@
+ALTER TABLE messages DROP COLUMN thread_id;
+DROP TABLE IF EXISTS threads;
