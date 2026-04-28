@@ -20,6 +20,13 @@ definitions:
         description: empty string when no more pages
         type: string
     type: object
+  dto.ListThreadsResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.ThreadResponse'
+        type: array
+    type: object
   dto.LoginRequest:
     properties:
       email:
@@ -41,6 +48,8 @@ definitions:
       id:
         type: string
       question:
+        type: string
+      thread_id:
         type: string
     type: object
   dto.RefreshRequest:
@@ -69,9 +78,26 @@ definitions:
       user_id:
         type: string
     type: object
+  dto.RenameThreadRequest:
+    properties:
+      name:
+        type: string
+    type: object
   dto.SendMessageRequest:
     properties:
       message:
+        type: string
+      thread_id:
+        description: empty = create new thread implicitly
+        type: string
+    type: object
+  dto.ThreadResponse:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      name:
         type: string
     type: object
 host: localhost:8080
@@ -242,9 +268,14 @@ paths:
       - auth
   /api/v1/messages:
     get:
-      description: Returns a paginated list of the authenticated user's messages.
+      description: Returns a paginated list of messages for the specified thread.
         Requires a valid Bearer access token.
       parameters:
+      - description: Thread ID
+        in: query
+        name: thread_id
+        required: true
+        type: string
       - description: Number of results (1-100, default 20)
         in: query
         name: limit
@@ -272,6 +303,12 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
@@ -280,7 +317,7 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: List chat messages
+      summary: List chat messages by thread
       tags:
       - messages
     post:
@@ -335,9 +372,9 @@ paths:
     post:
       consumes:
       - application/json
-      description: 'Sends a message to the AI and streams the response via SSE. Each
-        delta chunk is sent as "event: delta". The final saved message is sent as
-        "event: done". Requires a valid Bearer access token.'
+      description: Sends a message to the AI and streams the response via SSE. First
+        event is always "metadata" with the thread_id. Requires a valid Bearer access
+        token.
       parameters:
       - description: Message request
         in: body
@@ -349,7 +386,7 @@ paths:
       - text/event-stream
       responses:
         "200":
-          description: SSE stream of delta and done events
+          description: 'SSE stream: metadata, delta, done events'
           schema:
             type: string
         "400":
@@ -369,6 +406,88 @@ paths:
       summary: Stream a chat message
       tags:
       - messages
+  /api/v1/threads:
+    get:
+      description: Returns all chat threads for the authenticated user. Requires a
+        valid Bearer access token.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ListThreadsResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List chat threads
+      tags:
+      - threads
+  /api/v1/threads/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Updates the name of a thread. Requires a valid Bearer access token
+        and thread ownership.
+      parameters:
+      - description: Thread ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: New thread name
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RenameThreadRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ThreadResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Rename a chat thread
+      tags:
+      - threads
 securityDefinitions:
   BearerAuth:
     description: 'Enter: Bearer {token}'

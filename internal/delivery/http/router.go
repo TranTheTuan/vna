@@ -30,7 +30,7 @@ func RegisterRoutes(e *echo.Echo, cfg *configs.Config, ah *http_handler.AuthHand
 	msgs := e.Group("/api/v1/messages")
 	msgs.Use(JWTMiddleware(cfg))
 	msgs.POST("", mh.Send)
-	msgs.GET("", mh.List)
+	msgs.GET("", mh.ListByThread)
 }
 
 // JWTMiddleware validates Bearer access tokens and injects user claims into context.

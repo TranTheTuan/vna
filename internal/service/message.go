@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -26,11 +27,12 @@ var (
 
 // MessageService defines operations for sending and listing chat messages.
 type MessageService interface {
-	Send(ctx context.Context, userID, question string) (*domain.Message, error)
-	// SendStream calls the OpenResponses API with stream:true, calls onDelta for
-	// each incremental text chunk, saves the full answer, and returns the message.
-	SendStream(ctx context.Context, userID, question string, onDelta func(chunk string)) (*domain.Message, error)
-	List(ctx context.Context, userID string, limit int, cursor string) ([]*domain.Message, string, error)
+	Send(ctx context.Context, userID, threadID, question string) (*domain.Message, error)
+	// SendStream calls the OpenResponses API with stream:true.
+	// onMeta is called first with the resolved thread ID (before any delta).
+	// onDelta is called for each incremental text chunk.
+	SendStream(ctx context.Context, userID, threadID, question string, onMeta func(threadID string), onDelta func(chunk string)) (*domain.Message, error)
+	ListByThread(ctx context.Context, userID, threadID string, limit int, cursor string) ([]*domain.Message, string, error)
 }
 
 // openResponsesRequest is the body sent to POST /v1/responses.
@@ -59,35 +61,71 @@ type sseDeltaData struct {
 type messageService struct {
 	cfg        *configs.Config
 	repo       repository.MessageRepository
+	threadRepo repository.ThreadRepository
 	httpClient *http.Client
 	logger     *slog.Logger
 }
 
 // NewMessageService creates a MessageService. The HTTP client has no global timeout;
 // callers control cancellation via context (streaming requires long-lived connections).
-func NewMessageService(cfg *configs.Config, repo repository.MessageRepository, logger *slog.Logger) MessageService {
+func NewMessageService(cfg *configs.Config, repo repository.MessageRepository, threadRepo repository.ThreadRepository, logger *slog.Logger) MessageService {
 	return &messageService{
 		cfg:        cfg,
 		repo:       repo,
+		threadRepo: threadRepo,
 		httpClient: &http.Client{},
 		logger:     logger,
 	}
 }
 
+// resolveThread returns the threadID to use for a request, and whether a new thread was created.
+// If threadID is empty, a new thread is created. Otherwise ownership is validated.
+func (s *messageService) resolveThread(ctx context.Context, userID, threadID string) (id string, isNew bool, err error) {
+	if threadID == "" {
+		t, createErr := s.threadRepo.Create(ctx, userID)
+		if createErr != nil {
+			return "", false, fmt.Errorf("service.message: create thread: %w", createErr)
+		}
+		return t.ID, true, nil
+	}
+	// Validate ownership — sql.ErrNoRows means thread not found or not owned by user.
+	_, validateErr := s.threadRepo.GetByIDAndUser(ctx, threadID, userID)
+	if validateErr != nil {
+		if errors.Is(validateErr, sql.ErrNoRows) {
+			return "", false, ErrThreadNotFound
+		}
+		return "", false, fmt.Errorf("service.message: validate thread: %w", validateErr)
+	}
+	return threadID, false, nil
+}
+
 // Send calls the OpenResponses API (non-streaming) with the user's question, saves the Q&A, and returns it.
-func (s *messageService) Send(ctx context.Context, userID, question string) (*domain.Message, error) {
+func (s *messageService) Send(ctx context.Context, userID, threadID, question string) (*domain.Message, error) {
 	if question == "" {
 		return nil, ErrEmptyMessage
 	}
 
-	answer, err := s.callOpenResponses(ctx, userID, question)
+	resolvedID, isNew, err := s.resolveThread(ctx, userID, threadID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Pass thread ID as OpenResponses 'user' param so each thread has isolated AI context.
+	answer, err := s.callOpenResponses(ctx, resolvedID, question)
 	if err != nil {
 		s.logger.Error("OpenResponses call failed", "error", err, "userID", userID)
+		// Clean up the thread we just created so it doesn't appear as an orphan.
+		if isNew {
+			if delErr := s.threadRepo.Delete(ctx, resolvedID); delErr != nil {
+				s.logger.Error("failed to delete orphan thread", "error", delErr, "threadID", resolvedID)
+			}
+		}
 		return nil, err
 	}
 
 	msg, err := s.repo.Save(ctx, &domain.Message{
 		UserID:   userID,
+		ThreadID: resolvedID,
 		Question: question,
 		Answer:   answer,
 	})
@@ -98,21 +136,40 @@ func (s *messageService) Send(ctx context.Context, userID, question string) (*do
 	return msg, nil
 }
 
-// SendStream calls the OpenResponses API with stream:true, invokes onDelta for each
-// text chunk received, saves the full accumulated answer, and returns the saved message.
-func (s *messageService) SendStream(ctx context.Context, userID, question string, onDelta func(chunk string)) (*domain.Message, error) {
+// SendStream calls the OpenResponses API with stream:true.
+// It calls onMeta with the resolved thread ID before streaming starts,
+// invokes onDelta for each text chunk, saves the full answer, and returns the message.
+func (s *messageService) SendStream(ctx context.Context, userID, threadID, question string, onMeta func(string), onDelta func(string)) (*domain.Message, error) {
 	if question == "" {
 		return nil, ErrEmptyMessage
 	}
 
-	answer, err := s.streamOpenResponses(ctx, userID, question, onDelta)
+	resolvedID, isNew, err := s.resolveThread(ctx, userID, threadID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Notify handler of the thread ID as the very first event — before any streaming.
+	if onMeta != nil {
+		onMeta(resolvedID)
+	}
+
+	// Pass thread ID as OpenResponses 'user' param for per-thread AI context isolation.
+	answer, err := s.streamOpenResponses(ctx, resolvedID, question, onDelta)
 	if err != nil {
 		s.logger.Error("OpenResponses stream failed", "error", err, "userID", userID)
+		// Clean up the thread we just created so it doesn't appear as an orphan.
+		if isNew {
+			if delErr := s.threadRepo.Delete(ctx, resolvedID); delErr != nil {
+				s.logger.Error("failed to delete orphan thread", "error", delErr, "threadID", resolvedID)
+			}
+		}
 		return nil, err
 	}
 
 	msg, err := s.repo.Save(ctx, &domain.Message{
 		UserID:   userID,
+		ThreadID: resolvedID,
 		Question: question,
 		Answer:   answer,
 	})
@@ -123,24 +180,31 @@ func (s *messageService) SendStream(ctx context.Context, userID, question string
 	return msg, nil
 }
 
-// List returns a paginated slice of messages for the given user.
-// limit is clamped to [1, 100]; defaults to 20 when 0 is passed.
-func (s *messageService) List(ctx context.Context, userID string, limit int, cursor string) ([]*domain.Message, string, error) {
+// ListByThread returns a paginated slice of messages for the given thread.
+// Validates that the thread belongs to userID before querying.
+func (s *messageService) ListByThread(ctx context.Context, userID, threadID string, limit int, cursor string) ([]*domain.Message, string, error) {
 	if limit == 0 {
 		limit = 20
 	}
 	if limit < 1 || limit > 100 {
 		return nil, "", ErrInvalidLimit
 	}
-	return s.repo.ListByUser(ctx, userID, limit, cursor)
+	// Validate thread ownership before listing.
+	if _, err := s.threadRepo.GetByIDAndUser(ctx, threadID, userID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, "", ErrThreadNotFound
+		}
+		return nil, "", fmt.Errorf("service.message: validate thread: %w", err)
+	}
+	return s.repo.ListByThread(ctx, threadID, limit, cursor)
 }
 
 // callOpenResponses sends a non-streaming POST /v1/responses request and extracts the answer text.
-func (s *messageService) callOpenResponses(ctx context.Context, userID, question string) (string, error) {
+func (s *messageService) callOpenResponses(ctx context.Context, threadID, question string) (string, error) {
 	payload := openResponsesRequest{
 		Model:  s.cfg.ChatServer.Model,
 		Stream: false,
-		User:   userID,
+		User:   threadID,
 		Input:  question,
 	}
 
@@ -189,11 +253,11 @@ func (s *messageService) callOpenResponses(ctx context.Context, userID, question
 // streamOpenResponses sends a streaming POST /v1/responses request (stream:true),
 // reads SSE events line-by-line, calls onDelta for each response.output_text.delta chunk,
 // and returns the fully accumulated answer string.
-func (s *messageService) streamOpenResponses(ctx context.Context, userID, question string, onDelta func(chunk string)) (string, error) {
+func (s *messageService) streamOpenResponses(ctx context.Context, threadID, question string, onDelta func(chunk string)) (string, error) {
 	payload := openResponsesRequest{
 		Model:  s.cfg.ChatServer.Model,
 		Stream: true,
-		User:   userID,
+		User:   threadID,
 		Input:  question,
 	}
 

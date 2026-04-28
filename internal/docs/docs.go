@@ -265,15 +265,22 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns a paginated list of the authenticated user's messages. Requires a valid Bearer access token.",
+                "description": "Returns a paginated list of messages for the specified thread. Requires a valid Bearer access token.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "messages"
                 ],
-                "summary": "List chat messages",
+                "summary": "List chat messages by thread",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Thread ID",
+                        "name": "thread_id",
+                        "in": "query",
+                        "required": true
+                    },
                     {
                         "type": "integer",
                         "description": "Number of results (1-100, default 20)",
@@ -305,6 +312,15 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -404,7 +420,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Sends a message to the AI and streams the response via SSE. Each delta chunk is sent as \"event: delta\". The final saved message is sent as \"event: done\". Requires a valid Bearer access token.",
+                "description": "Sends a message to the AI and streams the response via SSE. First event is always \"metadata\" with the thread_id. Requires a valid Bearer access token.",
                 "consumes": [
                     "application/json"
                 ],
@@ -428,7 +444,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "SSE stream of delta and done events",
+                        "description": "SSE stream: metadata, delta, done events",
                         "schema": {
                             "type": "string"
                         }
@@ -444,6 +460,131 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/threads": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns all chat threads for the authenticated user. Requires a valid Bearer access token.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "threads"
+                ],
+                "summary": "List chat threads",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ListThreadsResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/threads/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Updates the name of a thread. Requires a valid Bearer access token and thread ownership.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "threads"
+                ],
+                "summary": "Rename a chat thread",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Thread ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "New thread name",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.RenameThreadRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ThreadResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -486,6 +627,17 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.ListThreadsResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ThreadResponse"
+                    }
+                }
+            }
+        },
         "dto.LoginRequest": {
             "type": "object",
             "properties": {
@@ -518,6 +670,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "question": {
+                    "type": "string"
+                },
+                "thread_id": {
                     "type": "string"
                 }
             }
@@ -563,10 +718,36 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.RenameThreadRequest": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.SendMessageRequest": {
             "type": "object",
             "properties": {
                 "message": {
+                    "type": "string"
+                },
+                "thread_id": {
+                    "description": "empty = create new thread implicitly",
+                    "type": "string"
+                }
+            }
+        },
+        "dto.ThreadResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
                     "type": "string"
                 }
             }
