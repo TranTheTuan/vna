@@ -21,6 +21,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	echoSwagger "github.com/swaggo/echo-swagger"
+	echoPrometheus "github.com/globocom/echo-prometheus"
 
 	"github.com/TranTheTuan/vna/configs"
 	"github.com/TranTheTuan/vna/internal/db"
@@ -28,6 +29,7 @@ import (
 	http_handler "github.com/TranTheTuan/vna/internal/handler/http"
 	"github.com/TranTheTuan/vna/internal/repository"
 	"github.com/TranTheTuan/vna/internal/service"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
@@ -70,6 +72,7 @@ func main() {
 		AllowMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders: []string{"Content-Type", "Authorization"},
 	}))
+	e.Use(echoPrometheus.MetricsMiddleware())
 
 	// Swagger UI — only enabled when SWAGGER_ENABLED=true
 	if cfg.SwaggerEnabled {
@@ -80,6 +83,12 @@ func main() {
 	http_delivery.RegisterAuthRoutes(apiGroup, authHandler, cfg)
 	http_delivery.RegisterMessageRoutes(apiGroup, messageHandler, cfg)
 	http_delivery.RegisterThreadRoutes(apiGroup, threadHandler, cfg)
+
+	// Health check endpoints (no JWT middleware)
+	http_delivery.RegisterHealthRoutes(e, pool)
+
+	// Prometheus metrics endpoint (no JWT middleware)
+	e.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
 
 	// Graceful shutdown on SIGINT / SIGTERM
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
